@@ -1,30 +1,20 @@
 import streamlit as st
 import requests
+
 from llama_index.llms.ollama import Ollama
-
 from llama_index.core.tools import FunctionTool
-
-
-llm: Ollama = Ollama(base_url="http://44.200.48.59:11434", model="llama3.2")
-print(llm.complete("Tell me a joke"))
-
 from llama_index.llms.openai import OpenAI
-from llama_index.core.agent import FunctionAgent
 from llama_index.core.agent import ReActAgent
 
-
+llm: Ollama = Ollama(base_url="http://44.200.48.59:11434", model="llama3.2")
 llm2 = OpenAI(model="gpt-4o-mini")
+
+print(llm.complete("Tell me a joke"))
 
 API_URL = "https://api.aurora-dev.sinchlab.com/AuroraService/v1/"
 USERNAME = "fb4b663c9ae241a58ac8239f910ca88c"
 PASSWORD = "3a112f0cca8648378e4a2291f64a0b78"
-
-# Set up Ollama with your base_url and model
-#OLLAMA_URL = "http://44.200.48.59:11434"
 OLLAMA_URL = "http://44.200.48.59:11434/api/tags"
-#OLLAMA_URL = "http://api.aurora-dev.sinchlab.com/AuroraService/v1/orders"
-#llm = Ollama(base_url=OLLAMA_URL, model="llama3.2")
-
 
 def get_regions():
     url = API_URL+"regions"
@@ -71,6 +61,9 @@ def api_response():
     else:
         return "Error contacting API."
 
+def internal_chatbot_response(message):
+    return llm.complete(message)
+
 # Wrap our function as a Tool
 post_search_tool = FunctionTool.from_defaults(
     fn=api_response,
@@ -83,9 +76,6 @@ agent = ReActAgent(
     llm=llm2,
     verbose=True
 )
-
-def chatbot_response(message):
-    return llm.complete(message)
 
 st.title("Ollama Chatbot Web UI")
 
@@ -115,7 +105,7 @@ if st.button("Send"):
             st.write("No matching regions found.")
     if user_input:
         st.session_state.chat_history.append(("You", user_input))
-        bot_reply = chatbot_response(user_input)
+        bot_reply = internal_chatbot_response(user_input)
         st.session_state.chat_history.append(("Bot", bot_reply))
 
 for speaker, message in st.session_state.chat_history:
