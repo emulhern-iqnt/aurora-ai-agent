@@ -9,7 +9,7 @@ from llama_index.core.agent import ReActAgent
 llm: Ollama = Ollama(base_url="http://44.200.48.59:11434", model="llama3.2")
 llm2 = OpenAI(model="gpt-4o-mini")
 
-print(llm.complete("Tell me a joke"))
+#print(llm.complete("Tell me a joke"))
 
 API_URL = "https://api.aurora-dev.sinchlab.com/AuroraService/v1/"
 USERNAME = "fb4b663c9ae241a58ac8239f910ca88c"
@@ -82,13 +82,15 @@ st.title("Ollama Chatbot Web UI")
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-user_input = st.text_input("You:", "")
+user_input = st.text_input("Chatbot Message:", "")
+if st.button("Send to Chatbot"):
+    if user_input:
+        st.session_state.chat_history.append(("You", user_input))
+        bot_reply = internal_chatbot_response(user_input)
+        st.session_state.chat_history.append(("Bot", bot_reply))
 
-search = st.text_input("Search for orders/regions:")
-#st.write("Basic API Response:", api_response())
-#st.write("Regions from API:", get_regions())
-
-if st.button("Send"):
+search = st.text_input("Search for Orders/Regions:")
+if st.button("Search Orders/Regions"):
     if search:
         regions = get_regions()
         results = []
@@ -103,10 +105,6 @@ if st.button("Send"):
                 st.write(f"Region: `{name}` — Orders: `{count}`")
         else:
             st.write("No matching regions found.")
-    if user_input:
-        st.session_state.chat_history.append(("You", user_input))
-        bot_reply = internal_chatbot_response(user_input)
-        st.session_state.chat_history.append(("Bot", bot_reply))
 
 for speaker, message in st.session_state.chat_history:
     st.write(f"**{speaker}:** {message}")
