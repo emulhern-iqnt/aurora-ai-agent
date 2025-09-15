@@ -93,7 +93,14 @@ my_api_tool = QueryEngineTool(
         description="This tool can be used to query data from a custom API by providing a search query.",
     ),
 )
+
 agent = ReActAgent(tools=[my_api_tool], llm=llm, verbose=True)
+
+async def _run_agent_async(prompt: str):
+    st.write(f"Running agent with prompt: {prompt}")
+
+    # agent.run is synchronous; run it in a thread so we can await it
+    return await asyncio.to_thread(agent.run, prompt)
 
 def internal_chatbot_response(message):
     return llm.complete(message)
@@ -114,8 +121,15 @@ search = st.text_input("Search Aurora Orders:")
 if st.button("Search"):
     if search:
         results = []
-        response = agent.run(search)
-        results.append(("Aurora", response))
+        try:
+            # Wrap the sync call in asyncio
+            agent_reply = asyncio.run(_run_agent_async(search))
+            st.write(str(getattr(agent_reply, "response", agent_reply)))
+            results.append(("Aurora", agent_reply))
+        except Exception as e:
+            st.error(f"Agent error: {e}")
+
+
         # if re.search(r"customer", search, re.IGNORECASE):
         #     customers = api_response("customers")
         #     for customer in customers.get("customers", []):
