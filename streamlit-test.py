@@ -3,14 +3,30 @@ import requests
 
 from llama_index.llms.ollama import Ollama
 from llama_index.core.tools import FunctionTool
-from llama_index.llms.openai import OpenAI
+#from llama_index.llms.openai import OpenAI
 from llama_index.core.agent import ReActAgent
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core import Settings
+
 import re
 import asyncio
 from llama_index.core.workflow import Context
 
 llm: Ollama = Ollama(base_url="http://44.200.48.59:11434", model="llama3.2")
-llm2 = OpenAI(model="gpt-4o-mini")
+Settings.llm = llm
+Settings.embed_model = None
+
+#llm2 = OpenAI(model="gpt-4o-mini")
+# llm = Ollama(
+#     model="gpt-oss:20b",
+#     # model="llama4:latest",
+#     request_timeout=60.0,
+#     # Manually set the context window to limit memory usage
+#     context_window=8000,
+#     temperature=0.3,
+#     # base_url='https://aigateway.inteliquent.com',
+# )
 
 #print(llm.complete("Tell me a joke"))
 
@@ -66,25 +82,21 @@ def api_response(suffix, params=None):
     else:
         return "Error contacting API."
 
-def internal_chatbot_response(message):
-    return llm.complete(message)
+
 
 # Wrap our function as a Tool
-post_search_tool = FunctionTool.from_defaults(
-    fn=api_response,
-    name="PostSearchTool",
-    description="Get all orders from the API",
+# Create a tool from your API call function
+my_api_tool = QueryEngineTool(
+    query_engine=RetrieverQueryEngine.from_args(retriever=lambda q: [api_response(q)]), # Simplified for demonstration
+    metadata=ToolMetadata(
+        name="my_api",
+        description="This tool can be used to query data from a custom API by providing a search query.",
+    ),
 )
+agent = ReActAgent(tools=[my_api_tool], llm=llm, verbose=True)
 
-agent = ReActAgent(
-    tools=[post_search_tool],
-    llm=llm,
-    verbose=True
-)
-
-def runAgent(input):
-    ctx = Context(agent)
-    return agent.run(input)
+def internal_chatbot_response(message):
+    return llm.complete(message)
 
 st.title("Ollama Chatbot Web UI")
 
@@ -101,8 +113,9 @@ if st.button("Send to Chatbot"):
 search = st.text_input("Search Aurora Orders:")
 if st.button("Search"):
     if search:
-        runAgent(search)
-        # results = []
+        results = []
+        response = agent.run(search)
+        results.append(("Aurora", response))
         # if re.search(r"customer", search, re.IGNORECASE):
         #     customers = api_response("customers")
         #     for customer in customers.get("customers", []):
@@ -124,11 +137,11 @@ if st.button("Search"):
         #         orders = api_response("orders", params={"workgroupId": wg_id})
         #         count = orders.get("pageInfo", {}).get("totalCount", 0)
         #         results.append((f"Workgroup: {wg_id}", count))
-        # if results:
-        #     for name, count in results:
-        #         st.write(f"{name} — Orders: `{count}`")
-        # else:
-        #     st.write("No matching aggregator found.")
+        if results:
+            for name, count in results:
+                st.write(f"{name} — Orders: `{count}`")
+        else:
+            st.write("No matching aggregator found.")
 
 for speaker, message in st.session_state.chat_history:
     st.write(f"**{speaker}:** {message}")
