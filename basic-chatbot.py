@@ -66,9 +66,6 @@ def api_response(suffix, params=None):
     else:
         return "Error contacting API."
 
-def internal_chatbot_response(message):
-    return llm.complete(message)
-
 # Wrap our function as a Tool
 post_search_tool = FunctionTool.from_defaults(
     fn=api_response,
@@ -76,65 +73,47 @@ post_search_tool = FunctionTool.from_defaults(
     description="Get all orders from the API",
 )
 
-agent = ReActAgent(
+async def get_agent():
+    agent = ReActAgent(
     tools=[post_search_tool],
     llm=llm,
     verbose=True
-)
+    )
+    return agent
+
+async def handle_user_message(
+    message_content: str,
+    agent: ReActAgent,
+    agent_context: Context,
+    verbose: bool = False,
+):
+    handler = agent.run(message_content, ctx=agent_context)
+    # async for event in handler.stream_events():
+    #     if verbose and type(event) == ToolCall:
+    #         print(f"Calling tool {event.tool_name} with kwargs {event.tool_kwargs}")
+    #     elif verbose and type(event) == ToolCallResult:
+    #         print(f"Tool {event.tool_name} returned {event.tool_output}")
+
+    response = await handler
+    return str(response)
+
+
 
 async def main():
-    ctx = Context(agent)  # context to hold history, etc.
-    # Query the agent
-    result = await agent.run("Show me orders related to widget failures", ctx=ctx)
-    print("Agent final answer:", result)
 
-    st.title("Ollama Chatbot Web UI")
+    # get the agent
+    agent = await get_agent()
 
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+    # create the agent context
+    agent_context = Context(agent)
 
-    user_input = st.text_input("Chatbot Message:", "")
-    if st.button("Send to Chatbot"):
-        if user_input:
-            st.session_state.chat_history.append(("You", user_input))
-            bot_reply = internal_chatbot_response(user_input)
-            st.session_state.chat_history.append(("Bot", bot_reply))
-
-    search = st.text_input("Search Aurora Orders:")
-    if st.button("Search"):
-        if search:
-            #runAgent(search)
-            results = []
-            if re.search(r"customer", search, re.IGNORECASE):
-                customers = api_response("customers")
-                for customer in customers.get("customers", []):
-                    customer_id = customer.get("id")
-                    orders = api_response("orders", params={"customerId": customer_id})
-                    count = orders.get("pageInfo", {}).get("totalCount", 0)
-                    results.append((f"Customer: {customer_id}", count))
-            elif re.search(r"region", search, re.IGNORECASE):
-                regions = api_response("regions")
-                for region in regions.get("regions", []):
-                    region_id = region.get("id")
-                    orders = api_response("orders", params={"regionId": region_id})
-                    count = orders.get("pageInfo", {}).get("totalCount", 0)
-                    results.append((f"Region: {region_id}", count))
-            elif re.search(r"workgroup", search, re.IGNORECASE):
-                workgroups = api_response("workgroups")
-                for wg in workgroups.get("workgroups", []):
-                    wg_id = wg.get("id")
-                    orders = api_response("orders", params={"workgroupId": wg_id})
-                    count = orders.get("pageInfo", {}).get("totalCount", 0)
-                    results.append((f"Workgroup: {wg_id}", count))
-            if results:
-                for name, count in results:
-                    st.write(f"{name} — Orders: `{count}`")
-            else:
-                st.write("No matching aggregator found.")
-
-    for speaker, message in st.session_state.chat_history:
-        st.write(f"**{speaker}:** {message}")
-
+    while True:
+        user_input = input("Enter your message: ")
+        if user_input == "exit":
+            break
+        print("User: ", user_input)
+        response = await handle_user_message(user_input, agent, agent_context, verbose=False)
+        print("Agent: ", response)
 
 asyncio.run(main())
 
