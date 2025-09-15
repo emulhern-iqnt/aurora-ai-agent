@@ -6,6 +6,8 @@ from llama_index.core.tools import FunctionTool
 from llama_index.llms.openai import OpenAI
 from llama_index.core.agent import ReActAgent
 import re
+import asyncio
+from llama_index.core.workflow import Context
 
 llm: Ollama = Ollama(base_url="http://44.200.48.59:11434", model="llama3.2")
 llm2 = OpenAI(model="gpt-4o-mini")
@@ -76,9 +78,13 @@ post_search_tool = FunctionTool.from_defaults(
 
 agent = ReActAgent(
     tools=[post_search_tool],
-    llm=llm2,
+    llm=llm,
     verbose=True
 )
+
+def runAgent(input):
+    ctx = Context(agent)
+    return agent.run(input)
 
 st.title("Ollama Chatbot Web UI")
 
@@ -95,33 +101,34 @@ if st.button("Send to Chatbot"):
 search = st.text_input("Search Aurora Orders:")
 if st.button("Search"):
     if search:
-        results = []
-        if re.search(r"customer", search, re.IGNORECASE):
-            customers = api_response("customers")
-            for customer in customers.get("customers", []):
-                customer_id = customer.get("id")
-                orders = api_response("orders", params={"customerId": customer_id})
-                count = orders.get("pageInfo", {}).get("totalCount", 0)
-                results.append((f"Customer: {customer_id}", count))
-        elif re.search(r"region", search, re.IGNORECASE):
-            regions = api_response("regions")
-            for region in regions.get("regions", []):
-                region_id = region.get("id")
-                orders = api_response("orders", params={"regionId": region_id})
-                count = orders.get("pageInfo", {}).get("totalCount", 0)
-                results.append((f"Region: {region_id}", count))
-        elif re.search(r"workgroup", search, re.IGNORECASE):
-            workgroups = api_response("workgroups")
-            for wg in workgroups.get("workgroups", []):
-                wg_id = wg.get("id")
-                orders = api_response("orders", params={"workgroupId": wg_id})
-                count = orders.get("pageInfo", {}).get("totalCount", 0)
-                results.append((f"Workgroup: {wg_id}", count))
-        if results:
-            for name, count in results:
-                st.write(f"{name} — Orders: `{count}`")
-        else:
-            st.write("No matching aggregator found.")
+        runAgent(search)
+        # results = []
+        # if re.search(r"customer", search, re.IGNORECASE):
+        #     customers = api_response("customers")
+        #     for customer in customers.get("customers", []):
+        #         customer_id = customer.get("id")
+        #         orders = api_response("orders", params={"customerId": customer_id})
+        #         count = orders.get("pageInfo", {}).get("totalCount", 0)
+        #         results.append((f"Customer: {customer_id}", count))
+        # elif re.search(r"region", search, re.IGNORECASE):
+        #     regions = api_response("regions")
+        #     for region in regions.get("regions", []):
+        #         region_id = region.get("id")
+        #         orders = api_response("orders", params={"regionId": region_id})
+        #         count = orders.get("pageInfo", {}).get("totalCount", 0)
+        #         results.append((f"Region: {region_id}", count))
+        # elif re.search(r"workgroup", search, re.IGNORECASE):
+        #     workgroups = api_response("workgroups")
+        #     for wg in workgroups.get("workgroups", []):
+        #         wg_id = wg.get("id")
+        #         orders = api_response("orders", params={"workgroupId": wg_id})
+        #         count = orders.get("pageInfo", {}).get("totalCount", 0)
+        #         results.append((f"Workgroup: {wg_id}", count))
+        # if results:
+        #     for name, count in results:
+        #         st.write(f"{name} — Orders: `{count}`")
+        # else:
+        #     st.write("No matching aggregator found.")
 
 for speaker, message in st.session_state.chat_history:
     st.write(f"**{speaker}:** {message}")
