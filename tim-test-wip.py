@@ -8,6 +8,20 @@ st.set_page_config(
     layout="centered"
 )
 
+from llama_index.core.llms import ChatMessage, MessageRole
+
+def chat_with_string(llm, prompt_or_messages):
+    """
+    Wrapper to allow passing either a plain string or a list of ChatMessages.
+    """
+    if isinstance(prompt_or_messages, str):
+        messages = [ChatMessage(role=MessageRole.USER, content=prompt_or_messages)]
+    else:
+        # assume it's already a list of ChatMessages
+        messages = prompt_or_messages
+
+    return llm.chat(messages=messages)
+
 
 # Initialize the Ollama LLM model
 @st.cache_resource
@@ -45,7 +59,7 @@ if prompt := st.chat_input("Ask something..."):
 
         # Get LLM response
         llm = get_llm()
-        response = llm.complete(prompt)
+        response = chat_with_string(llm, prompt)
 
         # Add assistant response to chat history
         message_placeholder.markdown(response)
