@@ -10,21 +10,6 @@ st.set_page_config(
     page_icon="🦙",
     layout="centered"
 )
-#Intialize MCP Client
-@st.cache_resource
-def build_agent():
-    llm = get_llm()
-    async def _build():
-        # Update this URL if your MCP server runs elsewhere
-        tools = await mcp_tool_spec.to_tool_list_async()
-        return FunctionAgent(
-            name="MCP-Ollama-Agent",
-            description="Uses Ollama LLM and MCP tools",
-            tools=tools,
-            llm=llm,
-        )
-
-    return asyncio.run(_build())
 
 # Initialize the Ollama LLM model
 @st.cache_resource
@@ -81,7 +66,7 @@ if prompt := st.chat_input("Ask something..."):
         agent = get_agent()
         def run_agent(q: str) -> str:
             async def _run():
-                result = await agent.run(q)
+                result = await agent.build_agent(q)
                 return str(result)
             return asyncio.run(_run())
 
