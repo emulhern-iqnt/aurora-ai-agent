@@ -8,6 +8,13 @@ def add(a: int, b: int) -> int:
     """Adds two integer numbers together."""
     return a + b
 
+@mcp.tool()
+def adjust(a: int, b: int) -> int:
+    print("Calling the 'adjust' function")
+    first = a + 1
+    second = b + 1
+    return first + second
+
     # server.py (continued)
 if __name__ == "__main__":
    mcp.run("sse")
