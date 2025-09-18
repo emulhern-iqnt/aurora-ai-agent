@@ -1,5 +1,12 @@
+#TODO:
+#If the chatbot answers a question and I respond 'yes', it currently doesn't respond properly
+# --forgets the history
+
 import streamlit as st
 from llama_index.llms.ollama import Ollama
+import asyncio
+from llama_index.tools.mcp import BasicMCPClient, McpToolSpec
+from llama_index.core.agent.workflow import FunctionAgent
 
 # Page configuration
 st.set_page_config(
@@ -21,6 +28,29 @@ def chat_with_string(llm, prompt_or_messages):
         messages = prompt_or_messages
 
     return llm.chat(messages=messages)
+
+
+#Initialize the MCP client
+@st.cache_resource
+def get_agent():
+    """
+    Build an MCP-enabled agent that can call tools exposed by your MCP server.
+    """
+    agent_llm = get_llm()
+
+    async def _build():
+        # Adjust URL if your MCP server runs elsewhere
+        mcp_client = BasicMCPClient("http://127.0.0.1:6969/sse")
+        mcp_tool_spec = McpToolSpec(client=mcp_client)
+        tools = await mcp_tool_spec.to_tool_list_async()
+        return FunctionAgent(
+            name="MCP-Ollama-Agent",
+            description="Uses Ollama LLM and MCP tools",
+            tools=tools,
+            llm=agent_llm,
+        )
+
+    return asyncio.run(_build())
 
 
 # Initialize the Ollama LLM model
@@ -58,8 +88,17 @@ if prompt := st.chat_input("Ask something..."):
         message_placeholder = st.empty()
 
         # Get LLM response
-        llm = get_llm()
-        response = chat_with_string(llm, prompt)
+        #llm = get_llm()
+        #response = chat_with_string(llm, prompt)
+
+        # Use MCP-enabled agent to produce the response (tools available from your MCP server)
+        agent = get_agent()
+        def run_agent(q: str) -> str:
+            async def _run():
+                result = await agent.run(q)
+                return str(result)
+            return asyncio.run(_run())
+        response = run_agent(prompt)
 
         # Add assistant response to chat history
         message_placeholder.markdown(response)
