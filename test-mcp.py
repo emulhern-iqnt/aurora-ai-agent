@@ -3,6 +3,8 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP(name="CalculatorServer", port=6969)
 
 API_URL = "https://api.aurora-dev.sinchlab.com/AuroraService/v1/"
+API_USERNAME = "fb4b663c9ae241a58ac8239f910ca88c"
+API_PASSWORD = "3a112f0cca8648378e4a2291f64a0b78"
 import requests
 
 @mcp.tool()
@@ -18,6 +20,9 @@ def adjust(a: int, b: int) -> int:
     second = b + 1
     return first + second
 
+import os
+from requests.auth import HTTPBasicAuth
+
 @mcp.tool()
 def http_get_two_params(
     suffix: str,
@@ -25,7 +30,8 @@ def http_get_two_params(
     param1_value: str,
     param2_name: str,
     param2_value: str,
-    verify_tls: bool = True,
+    username: str | None = None,
+    password: str | None = None,
 ):
     """
     Send a GET request to API_URL + suffix with two string query parameters.
@@ -36,7 +42,8 @@ def http_get_two_params(
       - param1_value: value of the first query parameter (string)
       - param2_name: name of the second query parameter (string)
       - param2_value: value of the second query parameter (string)
-      - verify_tls: set to False to disable TLS verification (not recommended in prod)
+      - username/password: Basic Auth credentials; if omitted, read from env:
+          API_USERNAME / API_PASSWORD
 
     Returns:
       - Parsed JSON on success if response is JSON
@@ -51,14 +58,25 @@ def http_get_two_params(
     url = API_URL.rstrip("/") + "/" + suffix.lstrip("/")
     params = {param1_name: param1_value, param2_name: param2_value}
 
-    # headers = {
-    #         'x-username': 'edmul1@on.sinch.com',
-    #         'Authorization': 'Basic ZmI0YjY2M2M5YWUyNDFhNThhYzgyMzlmOTEwY2E4OGM6M2ExMTJmMGNjYTg2NDgzNzhlNGEyMjkxZjY0YTBiNzg=',
-    #         'Cookie': 'JSESSIONID=DCC3B6C89D58E18F6EA692202C234C52'
-    #      }
+    # Resolve credentials: args take precedence over env vars
+    user = API_USERNAME
+    pwd = API_PASSWORD
+    if not user or not pwd:
+        raise ValueError("Missing Basic Auth credentials. Provide username/password or set API_USERNAME/API_PASSWORD env vars.")
+
+    headers = {
+             'x-username': 'edmul1@on.sinch.com',
+             'Authorization': 'Basic ZmI0YjY2M2M5YWUyNDFhNThhYzgyMzlmOTEwY2E4OGM6M2ExMTJmMGNjYTg2NDgzNzhlNGEyMjkxZjY0YTBiNzg=',
+             'Cookie': 'JSESSIONID=DCC3B6C89D58E18F6EA692202C234C52'
+         }
 
     try:
-        resp = requests.get(url, params=params, timeout=15.0, verify=bool(verify_tls))
+        resp = requests.get(
+            url,
+            headers=headers,
+            params=params,
+            timeout=15.0
+        )
     except requests.RequestException as e:
         return {
             "ok": False,
@@ -89,4 +107,4 @@ def http_get_two_params(
     return result
 
 if __name__ == "__main__":
-   mcp.run("sse")
+    mcp.run("sse")
