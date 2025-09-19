@@ -29,10 +29,7 @@ def http_get_two_params(
     param1_name: str,
     param1_value: str,
     param2_name: str,
-    param2_value: str,
-    username: str | None = None,
-    password: str | None = None,
-):
+    param2_value: str, verify_tls: bool = True):
     """
     Send a GET request to API_URL + suffix with two string query parameters.
 
@@ -63,7 +60,7 @@ def http_get_two_params(
     pwd = API_PASSWORD
     if not user or not pwd:
         raise ValueError("Missing Basic Auth credentials. Provide username/password or set API_USERNAME/API_PASSWORD env vars.")
-
+    payload = {}
     headers = {
              'x-username': 'edmul1@on.sinch.com',
              'Authorization': 'Basic ZmI0YjY2M2M5YWUyNDFhNThhYzgyMzlmOTEwY2E4OGM6M2ExMTJmMGNjYTg2NDgzNzhlNGEyMjkxZjY0YTBiNzg=',
@@ -71,12 +68,7 @@ def http_get_two_params(
          }
 
     try:
-        resp = requests.get(
-            url,
-            headers=headers,
-            params=params,
-            timeout=15.0
-        )
+        resp = requests.request("GET", url, headers=headers, data=payload, verify=bool(verify_tls))
     except requests.RequestException as e:
         return {
             "ok": False,
