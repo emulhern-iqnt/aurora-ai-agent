@@ -7,6 +7,7 @@ from llama_index.llms.ollama import Ollama
 import asyncio
 from llama_index.tools.mcp import BasicMCPClient, McpToolSpec
 from llama_index.core.agent.workflow import FunctionAgent
+from threading import Thread  # added
 
 # Page configuration
 st.set_page_config(
@@ -29,6 +30,18 @@ def chat_with_string(llm, prompt_or_messages):
 
     return llm.chat(messages=messages)
 
+# Create a single background asyncio loop for the session and a helper to run coroutines on it
+@st.cache_resource
+def get_async_runner():
+    loop = asyncio.new_event_loop()
+    thread = Thread(target=loop.run_forever, daemon=True)
+    thread.start()
+
+    def run(coro):
+        # Run a coroutine on the persistent loop and wait for its result
+        return asyncio.run_coroutine_threadsafe(coro, loop).result()
+
+    return loop, thread, run
 
 #Initialize the MCP client
 @st.cache_resource
@@ -37,6 +50,7 @@ def get_agent():
     Build an MCP-enabled agent that can call tools exposed by your MCP server.
     """
     agent_llm = get_llm()
+    _loop, _thread, run_async = get_async_runner()
 
     async def _build():
         # Adjust URL if your MCP server runs elsewhere
@@ -50,8 +64,8 @@ def get_agent():
             llm=agent_llm,
         )
 
-    return asyncio.run(_build())
-
+    # Build the agent once on the persistent loop (avoid asyncio.run here)
+    return run_async(_build())
 
 # Initialize the Ollama LLM model
 @st.cache_resource
@@ -93,11 +107,15 @@ if prompt := st.chat_input("Ask something..."):
 
         # Use MCP-enabled agent to produce the response (tools available from your MCP server)
         agent = get_agent()
+        _loop, _thread, run_async = get_async_runner()
+
         def run_agent(q: str) -> str:
             async def _run():
                 result = await agent.run(q)
                 return str(result)
-            return asyncio.run(_run())
+            # Run on the persistent loop instead of calling asyncio.run
+            return run_async(_run())
+
         response = run_agent(prompt)
 
         # Add assistant response to chat history
