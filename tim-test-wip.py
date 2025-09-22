@@ -18,6 +18,12 @@ st.set_page_config(
 
 from llama_index.core.llms import ChatMessage, MessageRole
 
+SYSTEM_PROMPT = (
+    "You are a tool-using assistant. "
+    "When a tool is invoked, you MUST base your final answer ONLY on the tool's returned output. "
+    "Do NOT perform your own arithmetic or re-calculate results. "
+)
+
 def chat_with_string(llm, prompt_or_messages):
     """
     Wrapper to allow passing either a plain string or a list of ChatMessages.
@@ -62,6 +68,7 @@ def get_agent():
             description="Uses Ollama LLM and MCP tools",
             tools=tools,
             llm=agent_llm,
+            system_prompt=SYSTEM_PROMPT,  # ensure tool output is authoritative
         )
 
     # Build the agent once on the persistent loop (avoid asyncio.run here)
@@ -70,8 +77,12 @@ def get_agent():
 # Initialize the Ollama LLM model
 @st.cache_resource
 def get_llm():
-    return Ollama(model="llama3.2", base_url="http://44.200.48.59:11434", request_timeout=120.0)
-
+    return Ollama(
+        model="llama3.2",
+        base_url="http://44.200.48.59:11434",
+        request_timeout=120.0,
+        temperature=0.0,  # reduce creative deviations to avoid self-doing math
+    )
 
 # Initialize chat history in session state if it doesn't exist
 if "messages" not in st.session_state:
@@ -100,10 +111,6 @@ if prompt := st.chat_input("Ask something..."):
     # Display assistant response
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-
-        # Get LLM response
-        #llm = get_llm()
-        #response = chat_with_string(llm, prompt)
 
         # Use MCP-enabled agent to produce the response (tools available from your MCP server)
         agent = get_agent()
