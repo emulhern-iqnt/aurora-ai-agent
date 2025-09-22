@@ -35,7 +35,7 @@ def http_get_two_params(
     param1_name: str,
     param1_value: str,
     param2_name: str,
-    param2_value: str, verify_tls: bool = True):
+    param2_value: str):
     """
     Send a GET request to API_URL + suffix with two string query parameters.
 
@@ -74,7 +74,7 @@ def http_get_two_params(
          }
 
     try:
-        resp = requests.request("GET", url, headers=headers, data=payload, verify=bool(verify_tls))
+        resp = requests.request("GET", url, headers=headers, data=payload)
     except requests.RequestException as e:
         return {
             "ok": False,
