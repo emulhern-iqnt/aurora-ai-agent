@@ -20,6 +20,12 @@ def adjust(a: int, b: int) -> int:
     second = b + 1
     return first + second
 
+
+@mcp.tool()
+def get_average(numbers: list[int]) -> float:
+    print("Calling the 'get_average' function")
+    """Returns the average of a list of numbers."""
+    return sum(numbers) / len(numbers)
 import os
 from requests.auth import HTTPBasicAuth
 
