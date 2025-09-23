@@ -147,6 +147,14 @@ def create_http_request(
     url = urlunparse(parsed._replace(query=new_query))
     return url
 
+@mcp.tool()
+def count_and_display(words: list[str]):
+    print("Calling the 'count_and_display' function")
+    dictionary = {}
+    for word in enumerate(words):
+        dictionary[word] = len(word)
+    return dictionary
+
 
 if __name__ == "__main__":
     mcp.run("sse")
