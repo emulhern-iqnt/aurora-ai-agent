@@ -106,37 +106,43 @@ def get_average(numbers: list[int]) -> float:
 #
 #     return result
 @mcp.tool()
-def create_http_request(suffix: str,
-    param1_name: str,
-    param1_value: str,
-    param2_name: str,
-    param2_value: str):
+def create_http_request(
+    suffix: str,
+    param1_name: str | None = None,
+    param1_value: str | None = None,
+    param2_name: str | None = None,
+    param2_value: str | None = None,
+):
     print("Calling the 'create_http_request' function")
-    if not isinstance(param1_name, str) or not isinstance(param2_name, str):
-        raise ValueError("param1_name and param2_name must be strings.")
-    if not isinstance(param1_value, str) or not isinstance(param2_value, str):
-        raise ValueError("param1_value and param2_value must be strings.")
+
+    from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+
+    def _is_blank(x):
+        return x is None or (isinstance(x, str) and x.strip() == "")
 
     base = API_URL.rstrip("/")
     suff = suffix.lstrip("/")
-
-    # Build initial URL (may or may not include an existing query in the suffix)
     raw_url = f"{base}/{suff}"
 
-    # Parse and merge query parameters in a robust way
+    # If no parameters are supplied (all missing/blank), return URL without any query string
+    if all(_is_blank(v) for v in (param1_name, param1_value, param2_name, param2_value)):
+        return raw_url
+
+    # Parse any existing query in suffix and merge only complete name/value pairs
     parsed = urlparse(raw_url)
     existing_qs = dict(parse_qsl(parsed.query, keep_blank_values=True))
 
-    # New params to add
-    new_params = {
-        param1_name: param1_value,
-        param2_name: param2_value,
-    }
+    new_params = {}
+    if not _is_blank(param1_name) and not _is_blank(param1_value):
+        new_params[param1_name] = param1_value
+    if not _is_blank(param2_name) and not _is_blank(param2_value):
+        new_params[param2_name] = param2_value
 
-    # Merge: new params override existing keys if present
+    # If no valid pairs provided, return the base URL without adding defaults
+    if not new_params:
+        return raw_url
+
     merged_params = {**existing_qs, **new_params}
-
-    # Rebuild URL with encoded query string
     new_query = urlencode(merged_params, doseq=True)
     url = urlunparse(parsed._replace(query=new_query))
     return url
