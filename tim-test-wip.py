@@ -26,8 +26,6 @@ SYSTEM_PROMPT = (
 
     "Before you help a user, you need to work with tools"
     
-    "When the user asks to 'create an http request' (or similar phrasing), you MUST call the tool named 'create_http_request'"
-    
     "Do not construct any URLs yourself in the model; always use the tool and return ONLY the tool's output as the final answer."
     "In general, prefer using available tools whenever they match the user's intent, and treat tool outputs as authoritative."
     "When a tool is invoked, you MUST base your final answer ONLY on the tool's returned output. "
