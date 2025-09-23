@@ -31,8 +31,6 @@ def get_average(numbers: list[int]) -> float:
     """Returns the average of a list of numbers."""
     return sum(numbers) / len(numbers)
 
-
-
 # @mcp.tool()
 # def http_get_two_params(
 #     suffix: str,
@@ -107,7 +105,7 @@ def get_average(numbers: list[int]) -> float:
 #         result["error"] = f"HTTP {resp.status_code}"
 #
 #     return result
-
+@mcp.tool()
 def create_http_request(suffix: str,
     param1_name: str,
     param1_value: str,
