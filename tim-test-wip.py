@@ -9,6 +9,8 @@ from llama_index.tools.mcp import BasicMCPClient, McpToolSpec
 from llama_index.core.agent.workflow import FunctionAgent
 from threading import Thread  # added
 
+from llama_index.llms.litellm import LiteLLM
+
 # Page configuration
 st.set_page_config(
     page_title="LlamaIndex Chatbot",
@@ -19,7 +21,14 @@ st.set_page_config(
 from llama_index.core.llms import ChatMessage, MessageRole
 
 SYSTEM_PROMPT = (
-    "You are a tool-using assistant. "
+    "You are an AI assistant for Tool Calling."
+
+    "Before you help a user, you need to work with tools"
+    
+    "When the user asks to 'create an http request' (or similar phrasing), you MUST call the tool named 'create_http_request'"
+    
+    "Do not construct any URLs yourself in the model; always use the tool and return ONLY the tool's output as the final answer."
+    "In general, prefer using available tools whenever they match the user's intent, and treat tool outputs as authoritative."
     "When a tool is invoked, you MUST base your final answer ONLY on the tool's returned output. "
     "Do NOT perform your own arithmetic or re-calculate results. "
 )
@@ -56,6 +65,7 @@ def get_agent():
     Build an MCP-enabled agent that can call tools exposed by your MCP server.
     """
     agent_llm = get_llm()
+    #agent_llm = get_llm_2()
     _loop, _thread, run_async = get_async_runner()
 
     async def _build():
@@ -83,6 +93,15 @@ def get_llm():
         request_timeout=120.0,
         temperature=0.0,  # reduce creative deviations to avoid self-doing math
     )
+
+@st.cache_resource
+def get_llm_2():
+    llm: LiteLLM = LiteLLM(
+        api_base="http://localhost:8000",
+        api_key="sk-B-KCtMPQ6mlr9yKA-O4BPw",
+        model="openai/llama3.3:latest"
+    )
+    return llm
 
 # Initialize chat history in session state if it doesn't exist
 if "messages" not in st.session_state:
