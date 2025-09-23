@@ -3,6 +3,7 @@
 # --forgets the history
 
 import streamlit as st
+from llama_index.core.agent import ReActAgent
 from llama_index.llms.ollama import Ollama
 import asyncio
 from llama_index.tools.mcp import BasicMCPClient, McpToolSpec
@@ -64,8 +65,8 @@ def get_agent():
     """
     Build an MCP-enabled agent that can call tools exposed by your MCP server.
     """
-    agent_llm = get_llm()
-    #agent_llm = get_llm_2()
+    #agent_llm = get_llm()
+    agent_llm = get_llm_2()
     _loop, _thread, run_async = get_async_runner()
 
     async def _build():
@@ -73,7 +74,7 @@ def get_agent():
         mcp_client = BasicMCPClient("http://127.0.0.1:6969/sse")
         mcp_tool_spec = McpToolSpec(client=mcp_client)
         tools = await mcp_tool_spec.to_tool_list_async()
-        return FunctionAgent(
+        return ReActAgent(
             name="MCP-Ollama-Agent",
             description="Uses Ollama LLM and MCP tools",
             tools=tools,
@@ -93,7 +94,9 @@ def get_llm():
         request_timeout=120.0,
         temperature=0.0,  # reduce creative deviations to avoid self-doing math
     )
-
+# Need to run:
+# socat TCP-LISTEN:8000,fork,reuseaddr OPENSSL:aigateway.inteliquent.com:443,verify=0
+# In order to get this working
 @st.cache_resource
 def get_llm_2():
     llm: LiteLLM = LiteLLM(
