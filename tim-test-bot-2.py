@@ -5,14 +5,71 @@ import pandas as pd
 import streamlit as st
 import json
 import random
+from sqlalchemy import create_engine, text
+import csv
+import os
+
+
 
 # Need to run:
 # socat TCP-LISTEN:8000,fork,reuseaddr OPENSSL:aigateway.inteliquent.com:443,verify=0
 # In order to get this working
 
+DB_CONFIG = {
+    "host": "ssotest.oraclerac.inteliquent.com",
+    "port": 1521,  # or 5432 for PostgreSQL
+    "sid": "SSOTEST",
+    "user": "EMULHERN",
+    "password": "emulhern"
+}
+
+
 WORKFLOW_QUERY = ("select ORDER_ID,STEP_INSTANCE_ID,(((UPDATE_DT - INSERT_DT) * 24) * 60) as ELAPSED,"
                   "INSERT_DT,UPDATE_DT,NAME,IS_AUTOMATED_STEP,TYPE_WORKFLOW_ACTION_REF from VANILLA.V_STEP_INSTANCE "
                   "where INSERT_DT >= SYSDATE - 21 order by INSERT_DT desc")
+
+
+def get_db_connection():
+    """
+    Creates a SQLAlchemy engine for Aurora database connection.
+    Supports both MySQL and PostgreSQL Aurora.
+    """
+    # If using SID instead of service_name:
+    connection_string = f"oracle+oracledb://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['sid']}"
+
+    engine = create_engine(connection_string, echo=False)
+    return engine
+
+
+def load_data_from_aurora():
+    """
+    Executes WORKFLOW_QUERY against Aurora database and saves results to data.csv
+    """
+    try:
+        engine = get_db_connection()
+
+        # Execute query and load into DataFrame
+        df = pd.read_sql(WORKFLOW_QUERY, engine)
+
+        # Save to CSV
+        df.to_csv("data.csv", index=False)
+
+        print(f"Successfully loaded {len(df)} rows from Aurora database to data.csv")
+        return True, len(df)
+
+    except Exception as e:
+        print(f"Error loading data from Aurora: {str(e)}")
+        return False, str(e)
+
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def refresh_data_from_aurora():
+    """
+    Cached function to refresh data from Aurora database.
+    Automatically refreshes every 5 minutes.
+    """
+    return load_data_from_aurora()
+
 
 
 @tool(description="This is a fallback tool. "
@@ -167,6 +224,46 @@ def get_completed_workflow_infos():
     print("get_completed_workflow_infos called")
     return "Completed workflows"
 
+
+# Add this after the tool definitions and before the Streamlit UI code
+
+# Add to sidebar for manual refresh
+with st.sidebar:
+    st.markdown("## About")
+    st.markdown("This chatbot queries Aurora database for workflow data.")
+    st.markdown("---")
+
+    # Add refresh button
+    if st.button("🔄 Refresh Data from Aurora"):
+        with st.spinner("Fetching data from Aurora database..."):
+            success, result = load_data_from_aurora()
+            if success:
+                st.success(f"✅ Loaded {result} rows from database")
+                # Clear cache to force reload
+                st.cache_data.clear()
+            else:
+                st.error(f"❌ Error: {result}")
+
+    # Show last update time
+    import os
+
+    if os.path.exists("data.csv"):
+        last_modified = os.path.getmtime("data.csv")
+        from datetime import datetime
+
+        last_update = datetime.fromtimestamp(last_modified).strftime("%Y-%m-%d %H:%M:%S")
+        st.info(f"Data last updated: {last_update}")
+
+    st.markdown("---")
+    st.markdown("Made with ❤️ using Streamlit")
+
+# Auto-refresh data on app startup
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = True
+    with st.spinner("Loading initial data from Aurora..."):
+        success, result = refresh_data_from_aurora()
+        if not success:
+            st.warning(f"Could not load data from Aurora: {result}. Using existing data.csv if available.")
 
 tools = [
     fallback,
