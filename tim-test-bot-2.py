@@ -213,6 +213,22 @@ def get_workflows_durations():
     :return:
     """
     print("get_workflows_durations called")
+    with open("data.csv", "r") as fh:
+        data = fh.read()
+
+    results = []
+    lines = data.splitlines()
+    for line in lines[1:]:
+        items = line.split(",")
+        if float(items[2]) > 0:
+            results.append({
+                "workflow_name": items[5],
+                "elapsed_minutes": float(items[2]),
+                "automated": items[6]
+            })
+    return results
+
+
 
 
 @tool(description="Returns the count of completed workflows.")
