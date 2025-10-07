@@ -239,13 +239,27 @@ def get_workflows_durations() -> dict:
 
 
 @tool(description="Returns the count of completed workflows.")
-def get_completed_workflow_infos():
+def get_completed_workflow_infos() -> dict:
     """
     return the count of completed workflows
     :return:
     """
     print("get_completed_workflow_infos called")
-    return "Completed workflows"
+    
+    try:
+        df = pd.read_csv("data.csv")
+        
+        # Count where type_workflow_action_ref is 'COMPLETE'
+        completed_workflows = len(df[df['type_workflow_action_ref'] == 'COMPLETE'])
+
+        results = {
+            "metric": {"completed_workflows": completed_workflows},
+            "text": f"Completed workflows: {completed_workflows}"
+        }
+        print(results)
+        return results
+    except Exception as e:
+        return {"text": f"Error reading data: {str(e)}"}
 
 
 # Add this after the tool definitions and before the Streamlit UI code
