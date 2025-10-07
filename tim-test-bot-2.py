@@ -87,146 +87,153 @@ def fallback(user_request: str) -> dict:
 def get_count_automated_vs_manual() -> dict:
     print("get_count_automated_vs_manual called")
 
-    with open("data.csv", "r") as fh:
-        data = fh.read()
+    try:
+        df = pd.read_csv("data.csv")
+        
+        # Count where is_automated_step is 'Y' vs 'N'
+        automated_steps = len(df[df['is_automated_step'] == 'Y'])
+        manual_steps = len(df[df['is_automated_step'] == 'N'])
 
-    automated_steps = 0
-    manual_steps = 0
-
-    lines = data.splitlines()
-
-    for line in lines[1:]:
-        items = line.split(",")
-        if items[6] == "Y":
-            automated_steps += 1
-        else:
-            manual_steps += 1
-
-    results = {
-        "metric": {"automated_steps": automated_steps, "manual_steps": manual_steps},
-        "text": f"Automated steps: {automated_steps}, Manual steps: {manual_steps}"
-    }
-    print(results)
-    return results
+        results = {
+            "metric": {"automated_steps": automated_steps, "manual_steps": manual_steps},
+            "text": f"Automated steps: {automated_steps}, Manual steps: {manual_steps}"
+        }
+        print(results)
+        return results
+    except Exception as e:
+        return {"text": f"Error reading data: {str(e)}"}
 
 
 @tool(description="Returns a count of failed steps.")
 def get_count_failed() -> dict:
     print("get_count_failed called")
 
-    with open("data.csv", "r") as fh:
-        data = fh.read()
+    try:
+        df = pd.read_csv("data.csv")
+        
+        # Count where type_workflow_action_ref is 'FAILED'
+        failed_steps = len(df[df['type_workflow_action_ref'] == 'FAILED'])
 
-    results = []
-    lines = data.splitlines()
-
-    for line in lines[1:]:
-        items = line.split(",")
-        if items[7] == "FAILED":
-            results.append(items[1])
-
-    results = {
-        "metric": {"failed_steps": len(results)},
-        "text": f"Failed steps: {len(results)}"
-    }
-    print(results)
-    return results
+        results = {
+            "metric": {"failed_steps": failed_steps},
+            "text": f"Failed steps: {failed_steps}"
+        }
+        print(results)
+        return results
+    except Exception as e:
+        return {"text": f"Error reading data: {str(e)}"}
 
 
 @tool(description="Returns a count of pending steps.")
 def get_count_pending() -> dict:
     print("get_count_pending called")
 
-    with open("data.csv", "r") as fh:
-        data = fh.read()
+    try:
+        df = pd.read_csv("data.csv")
+        
+        # Count where type_workflow_action_ref is 'PENDING'
+        pending_steps = len(df[df['type_workflow_action_ref'] == 'PENDING'])
 
-    results = []
-    lines = data.splitlines()
-
-    for line in lines[1:]:
-        items = line.split(",")
-        if items[7] == "PENDING":
-            results.append(items[1])
-
-    results = {
-        "metric": {"pending_steps": len(results)},
-        "text": f"Pending steps: {len(results)}"
-    }
-    print(results)
-    return results
+        results = {
+            "metric": {"pending_steps": pending_steps},
+            "text": f"Pending steps: {pending_steps}"
+        }
+        print(results)
+        return results
+    except Exception as e:
+        return {"text": f"Error reading data: {str(e)}"}
 
 
 @tool(description="Returns a count of skipped steps.")
 def get_count_skipped() -> dict:
     print("get_count_skipped called")
 
-    with open("data.csv", "r") as fh:
-        data = fh.read()
+    try:
+        df = pd.read_csv("data.csv")
+        
+        # Count where type_workflow_action_ref is 'SKIPPED'
+        skipped_steps = len(df[df['type_workflow_action_ref'] == 'SKIPPED'])
 
-    results = []
-    lines = data.splitlines()
-
-    for line in lines[1:]:
-        items = line.split(",")
-        if items[7] == "SKIPPED":
-            results.append(items[1])
-
-    results = {
-        "metric": {"skipped_steps": len(results)},
-        "text": f"Skipped steps: {len(results)}"
-    }
-    return results
+        results = {
+            "metric": {"skipped_steps": skipped_steps},
+            "text": f"Skipped steps: {skipped_steps}"
+        }
+        return results
+    except Exception as e:
+        return {"text": f"Error reading data: {str(e)}"}
 
 
 @tool(description="Returns the top 10 longest running steps.")
 def get_longest_running_steps() -> dict:
     print("get_longest_running_steps called")
 
-    with open("data.csv", "r") as fh:
-        data = fh.read()
-
-    results = []
-    lines = data.splitlines()
-
-    for line in lines[1:]:
-        items = line.split(",")
-        if float(items[2]) > 0:
-            results.append({
-                "workflow_name": items[5],
-                "elapsed_minutes": float(items[2]),
-                "automated": items[6]
-            })
-
-    top_10 = sorted(results, key=lambda x: x["elapsed_minutes"], reverse=True)[:10]
-    results = {
-        "table": top_10,
-        "text": json.dumps(top_10)
-    }
-    print(results)
-    return results
+    try:
+        df = pd.read_csv("data.csv")
+        
+        # Filter out rows with missing or zero elapsed time
+        df_filtered = df[df['elapsed'].notna() & (df['elapsed'] > 0)]
+        
+        # Sort by elapsed time and get top 10
+        top_10_df = df_filtered.nlargest(10, 'elapsed')
+        
+        # Convert to list of dicts
+        top_10 = top_10_df[['name', 'elapsed', 'is_automated_step']].to_dict('records')
+        
+        # Rename keys for clarity
+        top_10_formatted = [
+            {
+                "workflow_name": row['name'],
+                "elapsed_minutes": row['elapsed'],
+                "automated": row['is_automated_step']
+            }
+            for row in top_10
+        ]
+        
+        results = {
+            "table": top_10_formatted,
+            "text": json.dumps(top_10_formatted)
+        }
+        print(results)
+        return results
+    except Exception as e:
+        return {"text": f"Error reading data: {str(e)}"}
 
 
 @tool(description="Returns the elapsed time of workflows from start to finish in minutes.")
-def get_workflows_durations():
+def get_workflows_durations() -> dict:
     """
     return the elapsed time of workflows from start to finish in minutes
     :return:
     """
     print("get_workflows_durations called")
-    with open("data.csv", "r") as fh:
-        data = fh.read()
-
-    results = []
-    lines = data.splitlines()
-    for line in lines[1:]:
-        items = line.split(",")
-        if float(items[2]) > 0:
-            results.append({
-                "workflow_name": items[5],
-                "elapsed_minutes": float(items[2]),
-                "automated": items[6]
-            })
-    return results
+    
+    try:
+        df = pd.read_csv("data.csv")
+        
+        # Filter out rows with missing or zero elapsed time
+        df_filtered = df[df['elapsed'].notna() & (df['elapsed'] > 0)]
+        
+        # Convert to list of dicts
+        workflows = df_filtered[['name', 'elapsed', 'is_automated_step']].to_dict('records')
+        
+        # Rename keys for clarity
+        workflows_formatted = [
+            {
+                "workflow_name": row['name'],
+                "elapsed_minutes": row['elapsed'],
+                "automated": row['is_automated_step']
+            }
+            for row in workflows
+        ]
+        
+        results = {
+            "table": workflows_formatted,
+            "text": json.dumps(workflows_formatted)
+        }
+        print(results)
+        return results
+    except Exception as e:
+        return {"text": f"Error reading data: {str(e)}"}
 
 
 
