@@ -200,8 +200,13 @@ def generate_answer(state: State) -> State:
     Answer the questions with the French language only
     """
 
+    # full_prompt = [
+    #     ("system", french_assistant_system_prompt),
+    #     ("human", prompt)
+    # ]
+
     full_prompt = [
-        ("system", french_assistant_system_prompt),
+        ("system", statistician_assistant_system_prompt),
         ("human", prompt)
     ]
 
@@ -273,20 +278,20 @@ graph = graph_builder.compile()
 
 #Can add
 #"We do not know the case of the value 'credit card' so do a case insensitive search"
-# questions = [
-#     "average gross income from credit card payment type."
-#     "average gross income per gender",
-#     "5 unique cities",
-#     "total invoices in branches A and B",
-#     "total invoices in branches C and D",
-# ]
-
 questions = [
+    "average gross income from credit card payment type.",
     "average gross income per gender",
     "5 unique cities",
     "total invoices in branches A and B",
     "total invoices in branches C and D",
 ]
+
+# questions = [
+#     "average gross income per gender",
+#     "5 unique cities",
+#     "total invoices in branches A and B",
+#     "total invoices in branches C and D",
+# ]
 
 for question in questions:
     print(f"\n{'=' * 60}")
