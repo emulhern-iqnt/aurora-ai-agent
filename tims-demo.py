@@ -11,6 +11,54 @@ from typing_extensions import TypedDict
 import pandas as pd
 import os
 import urllib.request
+from sqlalchemy import create_engine
+
+#Extract data from Aurora DB
+DB_CONFIG = {
+    "host": "ssotest.oraclerac.inteliquent.com",
+    "port": 1521,  # or 5432 for PostgreSQL
+    "sid": "SSOTEST",
+    "user": "EMULHERN",
+    "password": "emulhern"
+}
+
+
+WORKFLOW_QUERY = ("select ORDER_ID,STEP_INSTANCE_ID,(((UPDATE_DT - INSERT_DT) * 24) * 60) as ELAPSED,"
+                  "INSERT_DT,UPDATE_DT,NAME,IS_AUTOMATED_STEP,TYPE_WORKFLOW_ACTION_REF from VANILLA.V_STEP_INSTANCE "
+                  "where INSERT_DT >= SYSDATE - 21 order by INSERT_DT desc")
+
+
+def get_db_connection():
+    """
+    Creates a SQLAlchemy engine for Aurora database connection.
+    Supports both MySQL and PostgreSQL Aurora.
+    """
+    # If using SID instead of service_name:
+    connection_string = f"oracle+oracledb://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['sid']}"
+
+    engine = create_engine(connection_string, echo=False)
+    return engine
+
+
+def load_data_from_aurora():
+    """
+    Executes WORKFLOW_QUERY against Aurora database and saves results to data.csv
+    """
+    try:
+        engine = get_db_connection()
+
+        # Execute query and load into DataFrame
+        df = pd.read_sql(WORKFLOW_QUERY, engine)
+
+        # Save to CSV
+        df.to_csv("aurora_data.csv", index=False)
+
+        print(f"Successfully loaded {len(df)} rows from Aurora database to aurora_data.csv")
+        return True, len(df)
+
+    except Exception as e:
+        print(f"Error loading data from Aurora: {str(e)}")
+        return False, str(e)
 
 # Download the CSV file if it doesn't exist locally
 def get_sales_data():
@@ -59,6 +107,7 @@ def get_sales_data():
     return pd.read_csv(csv_path)
 
 df = get_sales_data()
+df2 = load_data_from_aurora()
 
 
 class PandasQueryCommandOutput(TypedDict):
