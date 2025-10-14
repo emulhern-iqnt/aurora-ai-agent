@@ -13,6 +13,9 @@ import os
 import urllib.request
 from sqlalchemy import create_engine
 
+#Need this command to run the server
+#socat TCP-LISTEN:8000,fork,reuseaddr OPENSSL:aigateway.inteliquent.com:443,verify=0
+
 #Extract data from Aurora DB
 DB_CONFIG = {
     "host": "ssotest.oraclerac.inteliquent.com",
@@ -44,6 +47,7 @@ def load_data_from_aurora():
     """
     Executes WORKFLOW_QUERY against Aurora database and saves results to data.csv
     """
+    print("Loading data from Aurora database...")
     try:
         engine = get_db_connection()
 
@@ -106,8 +110,10 @@ def get_sales_data():
     
     return pd.read_csv(csv_path)
 
-df = get_sales_data()
-df2 = load_data_from_aurora()
+if os.environ.get("DATA_TYPE") == "sales":
+    df = get_sales_data()
+else:
+    df = load_data_from_aurora()
 
 
 class PandasQueryCommandOutput(TypedDict):
@@ -266,11 +272,21 @@ def generate_answer(state: State) -> State:
 
 
 def error_correction(state: State) -> State:
+    sales_column_names = f"""'Invoice ID', 'Branch', 'City', 'Customer type', 'Gender', 'Product line', 'Unit price', 'Quantity', 'Tax 5%', 'Total',
+    'Date', 'Time', 'Payment', 'cogs', 'gross margin percentage', 'gross income', 'Rating'"""
+
+    workflow_column_names = f""" 'order_id', 'step_instance_id', 'elapsed', 'insert_dt', 'update_dt', 'name', 
+    'is_automated_step', 'type_workflow_action_ref' """
+
+    if os.environ.get("DATA_TYPE") == "sales":
+        column_names = sales_column_names
+    else:
+        column_names = workflow_column_names
+
     prompt = f"""
     This dataframe has case sensitive column names. It is very important to use the correct column name case when you generate a query.
     These are the column names:
-    Column names for reference: 'Invoice ID', 'Branch', 'City', 'Customer type', 'Gender', 'Product line', 'Unit price', 'Quantity', 'Tax 5%', 'Total',
-    'Date', 'Time', 'Payment', 'cogs', 'gross margin percentage', 'gross income', 'Rating'
+    Column names for reference: """ + column_names + """
 
     Initial question: {state['question']}
 
