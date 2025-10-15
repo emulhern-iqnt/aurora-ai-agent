@@ -358,7 +358,7 @@ else:
     questions = [
         "average workflow step duration",
         "average duration of an automated workflow step",
-        "Get the 10 longest running workflow step types"
+        "Get the 10 longest running workflow step types by elapsed time"
     ]
 
 # questions = [
