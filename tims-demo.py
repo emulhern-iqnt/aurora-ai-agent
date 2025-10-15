@@ -58,7 +58,7 @@ def load_data_from_aurora():
         df.to_csv("aurora_data.csv", index=False)
 
         print(f"Successfully loaded {len(df)} rows from Aurora database to aurora_data.csv")
-        return True, len(df)
+        return pd.read_csv("aurora_data.csv")
 
     except Exception as e:
         print(f"Error loading data from Aurora: {str(e)}")
@@ -255,13 +255,15 @@ def generate_answer(state: State) -> State:
     Answer the questions with the French language only
     """
 
+    standard_assistant_system_prompt = """Answer the question with the English Language only"""
+
     # full_prompt = [
     #     ("system", french_assistant_system_prompt),
     #     ("human", prompt)
     # ]
 
     full_prompt = [
-        ("system", statistician_assistant_system_prompt),
+        ("system", standard_assistant_system_prompt),
         ("human", prompt)
     ]
 
@@ -343,13 +345,21 @@ graph = graph_builder.compile()
 
 #Can add
 #"We do not know the case of the value 'credit card' so do a case insensitive search"
-questions = [
-    "average gross income from credit card payment type.",
-    "average gross income per gender",
-    "5 unique cities",
-    "total invoices in branches A and B",
-    "total invoices in branches C and D",
-]
+if os.environ.get("DATA_TYPE") == "sales":
+    questions = [
+        "average gross income from credit card payment type.",
+        "average gross income per gender",
+        "5 unique cities",
+        "total invoices in branches A and B",
+        "total invoices in branches C and D",
+    ]
+
+else:
+    questions = [
+        "average workflow step duration",
+        "average duration of an automated workflow step",
+        "Get the 10 longest running workflow step types"
+    ]
 
 # questions = [
 #     "average gross income per gender",
