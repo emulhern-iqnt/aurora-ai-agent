@@ -1,4 +1,5 @@
 from langchain_ollama import ChatOllama
+from langchain_litellm import ChatLiteLLM
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
@@ -15,7 +16,9 @@ class Query(BaseModel):
 
 
 schema_items = []
-mysql_engine = create_engine(f"mysql+pymysql://zero:zero@localhost/aurora")
+#mysql_engine = create_engine(f"mysql+pymysql://zero:zero@localhost/aurora")
+mysql_engine = create_engine(f"mysql+pymysql://root:zero@10.44.12.18/vitel")
+mysql_write_engine = create_engine(f"mysql+pymysql://root:zero@10.44.12.18/prompt_logs")
 
 
 with mysql_engine.connect() as connection:
@@ -33,7 +36,15 @@ with mysql_engine.connect() as connection:
 schema = "\n".join(schema_items)
 
 
-sql_llm_base = ChatOllama(model="llama3.1:8b", temperature=0.1)
+#sql_llm_base = ChatOllama(model="llama3.1:8b", temperature=0.1)
+sql_llm_base = ChatLiteLLM(
+    api_base="http://localhost:8000",
+    api_key="sk-0dpm_OufkAtISgBy_Esr1g",
+    model="openai/llama3.1:8b",
+    #model="openai/llama4:latest",
+    temperature=0.1
+)
+
 sql_llm_so = sql_llm_base.with_structured_output(Query)
 
 
@@ -115,6 +126,7 @@ if human_message:
     with st.status("Doing stuff...", expanded=True) as status:
         st.write("Generating SQL query...")
         status.update(label="Generating SQL query...", state="running", expanded=True)
+        # breaking here
         response = sql_llm_so.invoke(code_prompt_template.format(schema=schema, question=human_message))
         st.markdown(f"```sql\n{response.sql_query}\n```")
 
