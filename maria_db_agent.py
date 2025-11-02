@@ -18,7 +18,7 @@ class Query(BaseModel):
 schema_items = []
 #mysql_engine = create_engine(f"mysql+pymysql://zero:zero@localhost/aurora")
 mysql_engine = create_engine(f"mysql+pymysql://root:zero@10.44.12.18/vitel")
-mysql_write_engine = create_engine(f"mysql+pymysql://root:zero@10.44.12.18/prompt_logs")
+mysql_write_engine = create_engine(f"mysql+pymysql://root:zero@10.44.12.18/aurora_logging")
 
 
 with mysql_engine.connect() as connection:
@@ -158,6 +158,27 @@ if human_message:
             selected = st.feedback("thumbs")
             if selected is not None:
                 st.markdown(f"You selected: {sentiment_mapping[selected]}")
+
+                # Log the prompt, query, number of results, and user feedback to the database
+                try:
+                    if sentiment_mapping[selected] == ":material/thumb_up:":
+                        user_feedback = 1
+                    else:
+                        user_feedback = 0
+                    if df.columns.size > 0:
+                        results_fl = 1
+                    else:
+                        results_fl = 0
+                    with mysql_write_engine.connect() as log_conn:
+                        log_query = text("""
+                                         INSERT INTO prompt_logs (user_prompt, generated_query, results_fl, user_feedback, created_at)
+                                         VALUES (:prompt, :query, :results_fl, :user_feedback, NOW())
+                                         """)
+                        log_conn.execute(log_query, {"prompt": human_message, "query": response.sql_query, "results_fl": results_fl, "user_feedback": user_feedback})
+                        log_conn.commit()
+                except Exception as log_error:
+                    st.warning(f"Failed to log query: {log_error}")
+
 
     else:
         with st.chat_message("assistant"):
