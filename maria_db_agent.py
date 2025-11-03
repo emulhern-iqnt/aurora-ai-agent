@@ -96,6 +96,8 @@ questions = [
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "feedback" not in st.session_state:
+    st.session_state.feedback = {}
 else:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -155,31 +157,37 @@ if human_message:
             st.dataframe(df.head(50))
 
             sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
-            selected = st.feedback("thumbs", key=f"feedback_{len(st.session_state.messages)}")
-            if selected is not None:
-                st.markdown(f"You selected: {sentiment_mapping[selected]}")
+            feedback_key = f"feedback_{len(st.session_state.messages)}"
+            selected = st.feedback("thumbs", key=feedback_key)
 
-                # Log the prompt, query, number of results, and user feedback to the database
-                try:
-                    if sentiment_mapping[selected] == ":material/thumb_up:":
-                        user_feedback = 1
-                    else:
-                        user_feedback = 0
-                    if df.columns.size > 0:
-                        results_fl = 1
-                    else:
-                        results_fl = 0
-                    with mysql_write_engine.connect() as log_conn:
-                        log_query = text("""
-                                         INSERT INTO prompt_logs (user_prompt, generated_query, results_fl, user_feedback, created_at)
-                                         VALUES (:prompt, :query, :results_fl, :user_feedback, NOW())
-                                         """)
-                        log_conn.execute(log_query, {"prompt": human_message, "query": response.sql_query, "results_fl": results_fl, "user_feedback": user_feedback})
-                        log_conn.commit()
-                except Exception as log_error:
-                    st.warning(f"Failed to log query: {log_error}")
+            # Store feedback in session state when it changes
+            if selected is not None:
+                st.session_state.feedback[feedback_key] = selected
+
+            if feedback_key in st.session_state.feedback:
+                st.markdown(f"You selected: {sentiment_mapping[selected]}")
 
 
     else:
         with st.chat_message("assistant"):
             st.error(f"Whoopsie: {response}")
+
+    # Log the prompt, query, number of results, and user feedback to the database
+    try:
+        #if sentiment_mapping[selected] == ":material/thumb_up:":
+        #    user_feedback = 1
+        #else:
+        user_feedback = 0
+        if df is None or df.columns.size == 0:
+            num_results = 0
+        else:
+            num_results = df.columns.size
+        with mysql_write_engine.connect() as log_conn:
+            log_query = text("""
+                             INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback, created_at)
+                             VALUES (:prompt, :query, :num_results, :user_feedback, NOW())
+                             """)
+            log_conn.execute(log_query, {"prompt": human_message, "query": response.sql_query, "num_results": num_results, "user_feedback": user_feedback})
+            log_conn.commit()
+    except Exception as log_error:
+        st.warning(f"Failed to log query: {log_error}")
