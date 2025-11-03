@@ -155,7 +155,7 @@ if human_message:
             st.dataframe(df.head(50))
 
             sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
-            selected = st.feedback("thumbs")
+            selected = st.feedback("thumbs", key=f"feedback_{len(st.session_state.messages)}")
             if selected is not None:
                 st.markdown(f"You selected: {sentiment_mapping[selected]}")
 
