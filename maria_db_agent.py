@@ -154,19 +154,8 @@ if human_message:
                 "data": df
             }})
 
+            num_results = 0 if len(df) == 0 else len(df)
             st.dataframe(df.head(50))
-
-            sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
-            feedback_key = f"feedback_{len(st.session_state.messages)}"
-            selected = st.feedback("thumbs", key=feedback_key)
-
-            # Store feedback in session state when it changes
-            if selected is not None:
-                st.session_state.feedback[feedback_key] = selected
-
-            if feedback_key in st.session_state.feedback:
-                st.markdown(f"You selected: {sentiment_mapping[selected]}")
-
 
     else:
         with st.chat_message("assistant"):
@@ -178,10 +167,7 @@ if human_message:
         #    user_feedback = 1
         #else:
         user_feedback = 0
-        if df is None or df.columns.size == 0:
-            num_results = 0
-        else:
-            num_results = df.columns.size
+       
         with mysql_write_engine.connect() as log_conn:
             log_query = text("""
                              INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback, created_at)
