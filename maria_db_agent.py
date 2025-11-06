@@ -210,6 +210,7 @@ if human_message:
             }})
 
             st.dataframe(df.head(50))
+            num_results = len(df)
 
             # Create feedback widget for the new response
             feedback_key = f"feedback_msg_{len(st.session_state.messages) - 1}"
