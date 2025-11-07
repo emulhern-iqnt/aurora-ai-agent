@@ -212,21 +212,7 @@ if human_message:
 
             st.dataframe(df.head(50))
             num_results = len(df)
-
-            # Create feedback widget for the new response
-            feedback_key = f"feedback_msg_{len(st.session_state.messages) - 1}"
-            user_feedback_raw = st.feedback("thumbs", key=feedback_key)
-            
-            # Convert feedback to 0 or 1
-            if user_feedback_raw is not None:
-                user_feedback = 1 if user_feedback_raw == 1 else 0
-                st.session_state.feedback_states[feedback_key] = user_feedback
-                st.write(f"Thank you for your feedback! (Value: {user_feedback})")
-            elif feedback_key in st.session_state.feedback_states:
-                user_feedback = st.session_state.feedback_states[feedback_key]
-                st.write(f"Previous feedback: {user_feedback}")
-            else:
-                user_feedback = None
+            user_feedback = None
 
     else:
         with st.chat_message("assistant"):
