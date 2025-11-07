@@ -197,6 +197,7 @@ if human_message:
 
         status.update(label="Done", state="complete", expanded=True)
 
+    num_results = None
     if not df is None:
         with st.chat_message("assistant"):
             st.session_state.messages.append({"role": "assistant", "content": {
@@ -230,20 +231,22 @@ if human_message:
     else:
         with st.chat_message("assistant"):
             st.error(f"Whoopsie: {response}")
+            user_feedback = None
 
     # Log the prompt, query, number of results, and user feedback to the database
     try:
-        #if sentiment_mapping[selected] == ":material/thumb_up:":
-        #    user_feedback = 1
-        #else:
-        #user_feedback = 0
-       
+        if num_results is None:
+           results_returned_fl = False
+           num_results = 0
+        else:
+            results_returned_fl = True
+
         with mysql_write_engine.connect() as log_conn:
             log_query = text("""
-                             INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback, created_at)
-                             VALUES (:prompt, :query, :num_results, :user_feedback, NOW())
+                             INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback, created_at, results_returned_fl)
+                             VALUES (:prompt, :query, :num_results, :user_feedback, NOW(), :results_returned_fl)
                              """)
-            log_conn.execute(log_query, {"prompt": human_message, "query": response.sql_query, "num_results": num_results, "user_feedback": user_feedback})
+            log_conn.execute(log_query, {"prompt": human_message, "query": response.sql_query, "num_results": num_results, "user_feedback": user_feedback, "results_returned_fl": results_returned_fl})
             log_conn.commit()
     except Exception as log_error:
         st.warning(f"Failed to log query: {log_error}")
