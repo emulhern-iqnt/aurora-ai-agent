@@ -133,8 +133,8 @@ answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=
 
 
 questions = [
-    "Which employee from team 'EMEA Onboarding' had the most items last 3 months (update date)?"
-    "number of steps per team name from the last 3 months"
+    "Which employee from team 'EMEA Onboarding' had the most items last 3 months (update date)?",
+    "number of steps per team name from the last 3 months",
     "Which of my team members are completing the most/fewest tasks? My team is 'Customer Success'"
     # "Which 3 teams had the best improvement in reduced average duration month-by-month over the last 3 months? broken down by month",
     # "Count of automated vs manual steps completed the last 3 weeks broken down by week",
