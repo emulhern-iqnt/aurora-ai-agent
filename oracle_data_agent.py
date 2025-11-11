@@ -38,7 +38,7 @@ class Answer(BaseModel):
 
 
 mysql_engine = create_db_engine_with_retry(f"mysql+pymysql://root:zero@10.44.12.18/aurora_data")
-
+mysql_write_engine = create_db_engine_with_retry(f"mysql+pymysql://root:zero@10.44.12.18/aurora_logging")
 
 console = Console()
 
@@ -134,8 +134,8 @@ answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=
 
 questions = [
     "Which employee from team 'EMEA Onboarding' had the most items last 3 months (update date)?"
-    # "number of steps per team name from the last 3 months"
-    # "Which of my team members are completing the most/fewest tasks? My team is 'Customer Success'"
+    "number of steps per team name from the last 3 months"
+    "Which of my team members are completing the most/fewest tasks? My team is 'Customer Success'"
     # "Which 3 teams had the best improvement in reduced average duration month-by-month over the last 3 months? broken down by month",
     # "Count of automated vs manual steps completed the last 3 weeks broken down by week",
     # "Are average times for automated steps over the last 3 months (group by month) improving? include the month and average time",
@@ -173,6 +173,31 @@ for question in questions:
         console.print()
         console.print(f"Question: {question}")
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
+
+
+        user_feedback = None
+        if len(df) > 0:
+            results_returned_fl = True
+            num_results = len(df)
+        else:
+            results_returned_fl = False
+            num_results = 0
+
+        with mysql_write_engine.connect() as log_conn:
+            log_query = text("""
+                             INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback, created_at, results_returned_fl)
+                             VALUES (:question, :query, :num_results, :user_feedback, NOW(), :results_returned_fl)
+                             """)
+
+            log_conn.execute(log_query,
+                             {"question": question,
+                              "query": sql_query,
+                              "num_results": num_results,
+                              "user_feedback": user_feedback,
+                              "results_returned_fl": results_returned_fl}
+                             )
+            log_conn.commit()
+
 
     except Exception as e:
         console.print(sql_query)

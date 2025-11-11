@@ -81,22 +81,23 @@ CREATE TABLE `workflow_steps` (
   `step_id` bigint(20) DEFAULT NULL,
   `order_id` bigint(20) DEFAULT NULL,
   `product_id` bigint(20) DEFAULT NULL,
-  `team_manager_name` text DEFAULT NULL,
+  `service_mgr_name` text DEFAULT NULL,
   `order_item_id` bigint(20) DEFAULT NULL,
   `process_instance_id` bigint(20) DEFAULT NULL,
   `process_name` text DEFAULT NULL,
-  `workflow_step_description` text DEFAULT NULL,
-  `status_during_step` text DEFAULT NULL,
-  `estimated_duration_days` double DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `type_workflow_action_ref` text DEFAULT NULL,
+  `estimated_duration` double DEFAULT NULL,
   `team_name` text DEFAULT NULL,
   `team_id` bigint(20) DEFAULT NULL,
   `employee_name` text DEFAULT NULL,
-  `promised_due_dt` datetime DEFAULT NULL,
+  `due_dt` datetime DEFAULT NULL,
   `is_automated_step` bigint(20) DEFAULT NULL,
   `elapsed_duration_hours` double DEFAULT NULL,
-  `workflow_step_date` datetime DEFAULT NULL,
+  `update_dt` datetime DEFAULT NULL,
+  `action_dt` datetime DEFAULT NULL,
   KEY `ix_workflow_steps_index` (`index`)
-)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 """
 sample_data = read_sql("SELECT * FROM workflow_steps ORDER BY RAND() LIMIT 10", mysql_engine).to_markdown()
 
