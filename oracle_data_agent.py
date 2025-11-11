@@ -10,6 +10,9 @@ from rich.console import Console
 from time import time
 
 
+# Need to run:
+# socat TCP-LISTEN:8000,fork,reuseaddr OPENSSL:aigateway.inteliquent.com:443,verify=0
+# In order to get this working
 
 class Query(BaseModel):
     sql_query: str = Field(description="A syntactically correct SQL query")
