@@ -182,8 +182,15 @@ while True:
         console.print(f"Question: {question}")
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
 
+        # Ask user for feedback
+        print()
+        feedback_input = input("Does this answer seem reasonable to you (y/n)? ").strip().lower()
+        
+        if feedback_input == 'y':
+            user_feedback = True
+        else:
+            user_feedback = False
 
-        user_feedback = None
         if len(df) > 0:
             results_returned_fl = True
             num_results = len(df)
