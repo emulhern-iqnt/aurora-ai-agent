@@ -138,20 +138,21 @@ print("Oracle Data Agent - Ask questions about your workflow data")
 print("=" * 60)
 print("Type 'exit' or 'quit' to stop\n")
 
+counter = 0
 while True:
-    
-    # Get a random question suggestion from the database
-    try:
-        suggestion_df = read_sql(
-            text("SELECT question FROM aurora_discovered_kpis ORDER BY RAND() LIMIT 1"),
-            mysql_engine
-        )
-        if len(suggestion_df) > 0:
-            suggested_question = suggestion_df.iloc[0]['question']
-            print(f"\nYou can ask a question like: '{suggested_question}'\n")
-    except Exception as e:
-        # If there's an error fetching suggestions, just continue
-        pass
+    if counter == 0:
+        # Get a random question suggestion from the database
+        try:
+            suggestion_df = read_sql(
+                text("SELECT question FROM aurora_discovered_kpis ORDER BY RAND() LIMIT 1"),
+                mysql_engine
+            )
+            if len(suggestion_df) > 0:
+                suggested_question = suggestion_df.iloc[0]['question']
+                print(f"\nYou can ask a question like: '{suggested_question}'\n")
+        except Exception as e:
+            # If there's an error fetching suggestions, just continue
+            pass
 
     # Get user input
     question = input("Enter your question: ").strip()
@@ -243,3 +244,5 @@ while True:
 
     print("*" * 60)
     print()
+
+    counter +=1
