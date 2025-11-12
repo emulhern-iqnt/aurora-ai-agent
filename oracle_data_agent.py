@@ -132,21 +132,44 @@ Give a brief answer to the question with this provided info.
 answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=["question", "query", "results"])
 
 
-questions = [
-    "Which employee from team 'EMEA Onboarding' had the most items last 3 months (update date)?",
-    "number of steps per team name from the last 3 months",
-    "Which of my team members are completing the most/fewest tasks? My team is 'Customer Success'"
-    # "Which 3 teams had the best improvement in reduced average duration month-by-month over the last 3 months? broken down by month",
-    # "Count of automated vs manual steps completed the last 3 weeks broken down by week",
-    # "Are average times for automated steps over the last 3 months (group by month) improving? include the month and average time",
-    #"automated vs non-automated steps that failed last month",
-    #"Which 3 teams have the highest average duration?",
-    #"Which 3 products have the highest average duration?",
-    #"Which 3 people have the lowest average duration? please include the team name and average duration",
-]
+# Get user input instead of using predefined questions
+print("=" * 60)
+print("Oracle Data Agent - Ask questions about your workflow data")
+print("=" * 60)
+print("Type 'exit' or 'quit' to stop\n")
 
+counter = 0
+while True:
+    if counter == 0:
+        # Get a random question suggestion from the database
+        try:
+            suggestion_df = read_sql(
+                text("SELECT question FROM aurora_discovered_kpis ORDER BY RAND() LIMIT 1"),
+                mysql_engine
+            )
+            if len(suggestion_df) > 0:
+                suggested_question = suggestion_df.iloc[0]['question']
+                print(f"\nYou can ask a question like: '{suggested_question}'\n")
+        except Exception as e:
+            # If there's an error fetching suggestions, just continue
+            pass
 
-for question in questions:
+    # Get user input
+    question = input("Enter your question: ").strip()
+    
+    # Check for exit commands
+    if question.lower() in ['exit', 'quit', 'q']:
+        print("Goodbye!")
+        break
+    
+    # Skip empty questions
+    if not question:
+        print("Please enter a valid question.\n")
+        continue
+
+    # Show thinking message
+    print("\nThinking . . .\n")
+
     start_ts = time()
 
     this_ts = time()
@@ -174,8 +197,15 @@ for question in questions:
         console.print(f"Question: {question}")
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
 
+        # Ask user for feedback
+        print()
+        feedback_input = input("Does this answer seem reasonable to you (y/n)? ").strip().lower()
+        
+        if feedback_input == 'y':
+            user_feedback = True
+        else:
+            user_feedback = False
 
-        user_feedback = None
         if len(df) > 0:
             results_returned_fl = True
             num_results = len(df)
@@ -200,11 +230,19 @@ for question in questions:
 
 
     except Exception as e:
-        console.print(sql_query)
-        console.print(f"Error: {e}")
+        console.print(f"[bold red]SQL Query:[/bold red]\n{sql_query}")
+        console.print(f"[bold red]Error:[/bold red] {e}")
 
-
+    # Ask if user wants to continue
+    continue_input = input("Would you like to ask another question (y/n)? ").strip().lower()
     print()
+
+    if continue_input != 'y':
+        print("Goodbye!")
+        break
+
+
     print("*" * 60)
     print()
-    print()
+
+    counter +=1
