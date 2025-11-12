@@ -132,21 +132,29 @@ Give a brief answer to the question with this provided info.
 answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=["question", "query", "results"])
 
 
-questions = [
-    "Which employee from team 'EMEA Onboarding' had the most items last 3 months (update date)?",
-    "number of steps per team name from the last 3 months",
-    "Which of my team members are completing the most/fewest tasks? My team is 'Customer Success'"
-    # "Which 3 teams had the best improvement in reduced average duration month-by-month over the last 3 months? broken down by month",
-    # "Count of automated vs manual steps completed the last 3 weeks broken down by week",
-    # "Are average times for automated steps over the last 3 months (group by month) improving? include the month and average time",
-    #"automated vs non-automated steps that failed last month",
-    #"Which 3 teams have the highest average duration?",
-    #"Which 3 products have the highest average duration?",
-    #"Which 3 people have the lowest average duration? please include the team name and average duration",
-]
+# Get user input instead of using predefined questions
+print("=" * 60)
+print("Oracle Data Agent - Ask questions about your workflow data")
+print("=" * 60)
+print("Type 'exit' or 'quit' to stop\n")
 
+while True:
+    # Get user input
+    question = input("Enter your question: ").strip()
+    
+    # Check for exit commands
+    if question.lower() in ['exit', 'quit', 'q']:
+        print("Goodbye!")
+        break
+    
+    # Skip empty questions
+    if not question:
+        print("Please enter a valid question.\n")
+        continue
 
-for question in questions:
+    # Show thinking message
+    print("\nThinking . . .\n")
+
     start_ts = time()
 
     this_ts = time()
@@ -200,11 +208,10 @@ for question in questions:
 
 
     except Exception as e:
-        console.print(sql_query)
-        console.print(f"Error: {e}")
+        console.print(f"[bold red]SQL Query:[/bold red]\n{sql_query}")
+        console.print(f"[bold red]Error:[/bold red] {e}")
 
 
     print()
     print("*" * 60)
-    print()
     print()
