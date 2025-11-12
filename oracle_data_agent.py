@@ -139,6 +139,7 @@ print("=" * 60)
 print("Type 'exit' or 'quit' to stop\n")
 
 while True:
+    
     # Get a random question suggestion from the database
     try:
         suggestion_df = read_sql(
@@ -231,7 +232,14 @@ while True:
         console.print(f"[bold red]SQL Query:[/bold red]\n{sql_query}")
         console.print(f"[bold red]Error:[/bold red] {e}")
 
-
+    # Ask if user wants to continue
+    continue_input = input("Would you like to ask another question (y/n)? ").strip().lower()
     print()
+
+    if continue_input != 'y':
+        print("Goodbye!")
+        break
+
+
     print("*" * 60)
     print()
