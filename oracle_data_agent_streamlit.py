@@ -185,125 +185,125 @@ if human_message:
         st.markdown(human_message)
         st.session_state.messages.append({"role": "user", "content": human_message})
 
-df = None
-sql_query = None
-answer_text = None
+    df = None
+    sql_query = None
+    answer_text = None
 
-with st.status("Processing your question...", expanded=True) as status:
-    try:
-        # Generate SQL query
-        st.write("🧠 Generating SQL query...")
-        start_ts = time()
+    with st.status("Processing your question...", expanded=True) as status:
+        try:
+            # Generate SQL query
+            st.write("🧠 Generating SQL query...")
+            start_ts = time()
 
-        this_ts = time()
-        response = sql_llm_so.invoke(code_prompt_template.format(question=human_message))
-        sql_query = response.sql_query
-        query_gen_seconds = time() - this_ts
+            this_ts = time()
+            response = sql_llm_so.invoke(code_prompt_template.format(question=human_message))
+            sql_query = response.sql_query
+            query_gen_seconds = time() - this_ts
 
-        st.markdown(f"**Generated SQL Query:**")
-        st.code(sql_query, language="sql")
-        st.write(f"✅ Query generated in {query_gen_seconds:.2f}s")
+            st.markdown(f"**Generated SQL Query:**")
+            st.code(sql_query, language="sql")
+            st.write(f"✅ Query generated in {query_gen_seconds:.2f}s")
 
-        # Execute query
-        st.write("🔍 Executing query...")
-        this_ts = time()
-        df = read_sql(text(sql_query), mysql_engine)
-        query_exec_seconds = time() - this_ts
-        st.write(f"✅ Query executed in {query_exec_seconds:.2f}s ({len(df)} rows)")
+            # Execute query
+            st.write("🔍 Executing query...")
+            this_ts = time()
+            df = read_sql(text(sql_query), mysql_engine)
+            query_exec_seconds = time() - this_ts
+            st.write(f"✅ Query executed in {query_exec_seconds:.2f}s ({len(df)} rows)")
 
-        # Generate answer
-        st.write("💬 Generating answer...")
-        this_ts = time()
-        answer_response = answer_llm_so.invoke(answer_prompt_template.format(
-            question=human_message,
-            query=sql_query,
-            results=df.to_markdown()
-        ))
-        answer_text = answer_response.answer
-        answer_gen_seconds = time() - this_ts
-        total_time = time() - start_ts
-        st.write(f"✅ Answer generated in {answer_gen_seconds:.2f}s (Total: {total_time:.2f}s)")
+            # Generate answer
+            st.write("💬 Generating answer...")
+            this_ts = time()
+            answer_response = answer_llm_so.invoke(answer_prompt_template.format(
+                question=human_message,
+                query=sql_query,
+                results=df.to_markdown()
+            ))
+            answer_text = answer_response.answer
+            answer_gen_seconds = time() - this_ts
+            total_time = time() - start_ts
+            st.write(f"✅ Answer generated in {answer_gen_seconds:.2f}s (Total: {total_time:.2f}s)")
 
-        status.update(label="Complete!", state="complete", expanded=False)
+            status.update(label="Complete!", state="complete", expanded=False)
 
-    except Exception as e:
-        status.update(label="Error occurred", state="error", expanded=True)
-        st.error(f"Error: {str(e)}")
+        except Exception as e:
+            status.update(label="Error occurred", state="error", expanded=True)
+            st.error(f"Error: {str(e)}")
 
-        # Log error
+            # Log error
+            with st.chat_message("assistant"):
+                st.session_state.messages.append({"role": "assistant", "content": {
+                    "type": "error",
+                    "data": f"Error: {str(e)}\n\nGenerated SQL: {sql_query if sql_query else 'N/A'}"
+                }})
+
+    # Display results if successful
+    if df is not None and sql_query and answer_text:
         with st.chat_message("assistant"):
+            # Store query
             st.session_state.messages.append({"role": "assistant", "content": {
-                "type": "error",
-                "data": f"Error: {str(e)}\n\nGenerated SQL: {sql_query if sql_query else 'N/A'}"
+                "type": "query",
+                "data": sql_query
             }})
 
-# Display results if successful
-if df is not None and sql_query and answer_text:
-    with st.chat_message("assistant"):
-        # Store query
-        st.session_state.messages.append({"role": "assistant", "content": {
-            "type": "query",
-            "data": sql_query
-        }})
+
+            # Store and display answer
+            st.session_state.messages.append({"role": "assistant", "content": {
+                "type": "answer",
+                "data": answer_text
+            }})
 
 
-        # Store and display answer
-        st.session_state.messages.append({"role": "assistant", "content": {
-            "type": "answer",
-            "data": answer_text
-        }})
+            # Store and display dataframe
+            num_results = len(df)
+            st.session_state.messages.append({"role": "assistant", "content": {
+                "type": "df",
+                "data": df,
+                "num_results": num_results
+            }})
+            st.markdown(f"**Query Results:** ({num_results} rows)")
+            st.dataframe(df, use_container_width=True)
 
+            st.markdown(f"**Answer:**")
+            st.markdown(answer_text)
 
-        # Store and display dataframe
-        num_results = len(df)
-        st.session_state.messages.append({"role": "assistant", "content": {
-            "type": "df",
-            "data": df,
-            "num_results": num_results
-        }})
-        st.markdown(f"**Query Results:** ({num_results} rows)")
-        st.dataframe(df, use_container_width=True)
+            # Feedback widget
+            feedback_key = f"feedback_msg_{len(st.session_state.messages) - 1}"
 
-        st.markdown(f"**Answer:**")
-        st.markdown(answer_text)
+            st.markdown("---")
+            st.markdown("**Does this answer seem reasonable to you?**")
+            user_feedback_raw = st.feedback("thumbs", key=feedback_key)
 
-        # Feedback widget
-        feedback_key = f"feedback_msg_{len(st.session_state.messages) - 1}"
+            # Convert feedback to boolean and log
+            if user_feedback_raw is not None:
+                user_feedback = True if user_feedback_raw == 1 else False
+                st.session_state.feedback_states[feedback_key] = user_feedback
 
-        st.markdown("---")
-        st.markdown("**Does this answer seem reasonable to you?**")
-        user_feedback_raw = st.feedback("thumbs", key=feedback_key)
+                # Determine flags
+                results_returned_fl = num_results > 0
 
-        # Convert feedback to boolean and log
-        if user_feedback_raw is not None:
-            user_feedback = True if user_feedback_raw == 1 else False
-            st.session_state.feedback_states[feedback_key] = user_feedback
-
-            # Determine flags
-            results_returned_fl = num_results > 0
-
-            # Log to database
-            try:
-                with mysql_write_engine.connect() as log_conn:
-                    log_query = text("""
-                                     INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback,
-                                                              created_at, results_returned_fl)
-                                     VALUES (:question, :query, :num_results, :user_feedback, NOW(),
-                                             :results_returned_fl)
-                                     """)
-                    log_conn.execute(log_query, {
-                        "question": human_message,
-                        "query": sql_query,
-                        "num_results": num_results,
-                        "user_feedback": user_feedback,
-                        "results_returned_fl": results_returned_fl
-                    })
-                    log_conn.commit()
-                st.success("✅ Feedback recorded!" if user_feedback else "👎 Feedback recorded. We'll work to improve!")
-            except Exception as log_error:
-                st.warning(f"Failed to log feedback: {log_error}")
-        elif feedback_key in st.session_state.feedback_states:
-            user_feedback = st.session_state.feedback_states[feedback_key]
-            st.info(f"Previous feedback: {'👍 Positive' if user_feedback else '👎 Negative'}")
+                # Log to database
+                try:
+                    with mysql_write_engine.connect() as log_conn:
+                        log_query = text("""
+                                         INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback,
+                                                                  created_at, results_returned_fl)
+                                         VALUES (:question, :query, :num_results, :user_feedback, NOW(),
+                                                 :results_returned_fl)
+                                         """)
+                        log_conn.execute(log_query, {
+                            "question": human_message,
+                            "query": sql_query,
+                            "num_results": num_results,
+                            "user_feedback": user_feedback,
+                            "results_returned_fl": results_returned_fl
+                        })
+                        log_conn.commit()
+                    st.success("✅ Feedback recorded!" if user_feedback else "👎 Feedback recorded. We'll work to improve!")
+                except Exception as log_error:
+                    st.warning(f"Failed to log feedback: {log_error}")
+            elif feedback_key in st.session_state.feedback_states:
+                user_feedback = st.session_state.feedback_states[feedback_key]
+                st.info(f"Previous feedback: {'👍 Positive' if user_feedback else '👎 Negative'}")
 
 
