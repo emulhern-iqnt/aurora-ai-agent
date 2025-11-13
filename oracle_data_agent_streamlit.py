@@ -200,6 +200,8 @@ with st.status("Processing your question...", expanded=True) as status:
         sql_query = response.sql_query
         query_gen_seconds = time() - this_ts
 
+        st.markdown(f"**Generated SQL Query:**")
+        st.code(sql_query, language="sql")
         st.write(f"✅ Query generated in {query_gen_seconds:.2f}s")
 
         # Execute query
@@ -243,16 +245,14 @@ if df is not None and sql_query and answer_text:
             "type": "query",
             "data": sql_query
         }})
-        st.markdown(f"**Generated SQL Query:**")
-        st.code(sql_query, language="sql")
+
 
         # Store and display answer
         st.session_state.messages.append({"role": "assistant", "content": {
             "type": "answer",
             "data": answer_text
         }})
-        st.markdown(f"**Answer:**")
-        st.markdown(answer_text)
+
 
         # Store and display dataframe
         num_results = len(df)
@@ -263,6 +263,9 @@ if df is not None and sql_query and answer_text:
         }})
         st.markdown(f"**Query Results:** ({num_results} rows)")
         st.dataframe(df, use_container_width=True)
+
+        st.markdown(f"**Answer:**")
+        st.markdown(answer_text)
 
         # Feedback widget
         feedback_key = f"feedback_msg_{len(st.session_state.messages) - 1}"
