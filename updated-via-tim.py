@@ -58,10 +58,11 @@ You are an expert SQL query generator specializing in MariaDB. Your task is to a
 
 Key Rules:
 - Return only ONE SQL query.
+- When asked about muliple items with plural syntax, ex: "How many products...", "Which steps...", etc. do not limit to a single item. (`limit 1`)
 - Use strict MariaDB SQL syntax (e.g., backticks for identifiers, DATETIME for dates).
 - Do not invent column names, data types, table names, relationships, or assumptions about the data—stick exactly to the schema provided.
 - Products are put into service via workflows (workflow_id), and workflows have several steps (step_instance_id), so group by process_instance_id when answering questions about products, services and orders.
-- When asked about durations you must use the elapsed_duration_hours field.
+- When asked about durations you must use the elapsed_duration_hours field and include the field in the resultset.
 - When asked about SLAs or missed due dates you must use the promised_due_dt and workflow_step_date fields.
 - If the question cannot be answered with the given schema (e.g., missing columns or tables), respond with: "Insufficient schema information to answer this query."
 - Focus on efficiency: Use appropriate WHERE clauses, JOINs (if implied by schema), GROUP BY, ORDER BY, LIMIT, etc., only as needed.
@@ -130,27 +131,27 @@ The database query:
 The database results:
 {results}
 
-Note:
-Give a brief answer to the question with this provided info.
+
+### Instructions:
+With the provided question and database results, generate a brief and concise answer to the question.
+If the resultset is empty, respond with "There is not data available to answer this question."
 """
 
 answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=["question", "query", "results"])
 
 
 questions = [
-    "What is the average time for 'Emergency Services' products to enabled?",
-    "Which 10 products take the longest to fully enable service and how long does it take?",
-    # "How many steps missed SLA target last month?",
-    # "Which 10 employees had the most workflow steps last month? include number of steps and employee name broken down by week",
-    # "number of steps per team name from the last 3 months",
-    # "Which of my team members are completing the most/fewest tasks? My team is 'Customer Success'",
-    # "Which 3 teams had the best improvement in reduced average duration month-by-month over the last 3 months? broken down by month",
-    # "Count of automated vs manual steps completed the last 3 weeks broken down by week",
-    # "Are average times for automated steps over the last 3 months (group by month) improving? include the month and average time",
-    # "automated vs non-automated steps that failed last month",
-    # "Which 3 teams have the highest average duration?",
-    # "Which 3 products have the highest average duration?",
-    # "Which 3 people have the lowest average duration? please include the team name and average duration",
+    #"count of automated vs manual steps completed. how many failed?",
+    #"which workflow steps names take the longest to complete on average",
+    # "trend of manual vs automated steps completed over the last month",
+    "How is my team (team name EMEA Onboarding) doing against their SLAs?",
+    #"Which of my team members are completing the most/fewest tasks?",
+    #"How long does it take to complete short code orders?",
+    #"How is the performance trending over time?",
+    #"How many tasks (by product?) are automated vs manual?",
+    #"How is that trending over time?",
+    #"Which automations have high failure rates?",
+    #"how long does it take to put a product into service? this might be duration of the overall workflow for a given product possibly by region or country",
 ]
 
 
@@ -158,7 +159,8 @@ for question in questions:
     start_ts = time()
 
     this_ts = time()
-    response = sql_llm_so.invoke(code_prompt_template.format(question=question))
+    prompt = code_prompt_template.format(question=question)
+    response = sql_llm_so.invoke(prompt)
     sql_query = response.sql_query
 
     query_gen_seconds = time() - this_ts
