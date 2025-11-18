@@ -240,70 +240,88 @@ if human_message:
     # Display results if successful
     if df is not None and sql_query and answer_text:
         with st.chat_message("assistant"):
-            # Store query
+            # Display and store SQL query in an expander
+            with st.expander("🔍 View Generated SQL Query", expanded=False):
+                st.code(sql_query, language="sql")
+            
             st.session_state.messages.append({"role": "assistant", "content": {
                 "type": "query",
                 "data": sql_query
             }})
 
-
             # Store and display answer
+            st.markdown(f"**Answer:**")
+            st.markdown(answer_text)
+            
             st.session_state.messages.append({"role": "assistant", "content": {
                 "type": "answer",
                 "data": answer_text
             }})
 
-
             # Store and display dataframe
             num_results = len(df)
+            st.markdown(f"**Query Results:** ({num_results} rows)")
+            st.dataframe(df, use_container_width=True)
+            
             st.session_state.messages.append({"role": "assistant", "content": {
                 "type": "df",
                 "data": df,
                 "num_results": num_results
             }})
-            st.markdown(f"**Query Results:** ({num_results} rows)")
-            st.dataframe(df, use_container_width=True)
 
-            st.markdown(f"**Answer:**")
-            st.markdown(answer_text)
+            # Determine flags
+            results_returned_fl = num_results > 0
 
-            # Feedback widget
+            # Feedback widget with form
             feedback_key = f"feedback_msg_{len(st.session_state.messages) - 1}"
+            
+            if feedback_key not in st.session_state.feedback_states:
+                st.markdown("---")
+                st.markdown("**Does this answer seem reasonable to you?**")
+                
+                with st.form(key=f"feedback_form_{feedback_key}"):
+                    user_feedback_input = st.text_input(
+                        "Type 'y' for yes or 'n' for no:", 
+                        key=f"input_{feedback_key}"
+                    )
+                    submit_button = st.form_submit_button("Submit Feedback")
+                    
+                    if submit_button and user_feedback_input:
+                        user_feedback_lower = user_feedback_input.strip().lower()
+                        if user_feedback_lower in ['y', 'n']:
+                            user_feedback = True if user_feedback_lower == 'y' else False
+                            st.session_state.feedback_states[feedback_key] = user_feedback
 
-            st.markdown("---")
-            st.markdown("**Does this answer seem reasonable to you?**")
-            user_feedback_raw = st.feedback("thumbs", key=feedback_key)
-
-            # Convert feedback to boolean and log
-            if user_feedback_raw is not None:
-                user_feedback = True if user_feedback_raw == 1 else False
-                st.session_state.feedback_states[feedback_key] = user_feedback
-
-                # Determine flags
-                results_returned_fl = num_results > 0
-
-                # Log to database
-                try:
-                    with mysql_write_engine.connect() as log_conn:
-                        log_query = text("""
-                                         INSERT INTO prompt_logs (user_prompt, generated_query, num_results, user_feedback,
-                                                                  created_at, results_returned_fl)
-                                         VALUES (:question, :query, :num_results, :user_feedback, NOW(),
-                                                 :results_returned_fl)
-                                         """)
-                        log_conn.execute(log_query, {
-                            "question": human_message,
-                            "query": sql_query,
-                            "num_results": num_results,
-                            "user_feedback": user_feedback,
-                            "results_returned_fl": results_returned_fl
-                        })
-                        log_conn.commit()
-                    st.success("✅ Feedback recorded!" if user_feedback else "👎 Feedback recorded. We'll work to improve!")
-                except Exception as log_error:
-                    st.warning(f"Failed to log feedback: {log_error}")
-            elif feedback_key in st.session_state.feedback_states:
+                        else:
+                            st.warning("Please enter 'y' or 'n'")
+                    elif submit_button and not user_feedback_input:
+                        # If submit button is clicked but no input provided, set feedback to False
+                        user_feedback = False
+                        st.session_state.feedback_states[feedback_key] = user_feedback
+            else:
                 user_feedback = st.session_state.feedback_states[feedback_key]
+                st.markdown("---")
                 st.info(f"Previous feedback: {'👍 Positive' if user_feedback else '👎 Negative'}")
 
-
+            # Log to database
+            try:
+                if user_feedback_input == '' or user_feedback_input is None:
+                    user_feedback = False
+                with mysql_write_engine.connect() as log_conn:
+                    log_query = text("""
+                                     INSERT INTO prompt_logs (user_prompt, generated_query, num_results,
+                                                              user_feedback, created_at, results_returned_fl)
+                                     VALUES (:question, :query, :num_results, :user_feedback, NOW(),
+                                             :results_returned_fl)
+                                     """)
+                    log_conn.execute(log_query, {
+                        "question": human_message,
+                        "query": sql_query,
+                        "num_results": num_results,
+                        "user_feedback": user_feedback,
+                        "results_returned_fl": results_returned_fl
+                    })
+                    log_conn.commit()
+                st.info("No feedback provided - recorded as negative feedback.")
+            except Exception as log_error:
+                st.warning(f"Failed to log feedback: {log_error}")
