@@ -69,7 +69,10 @@ Key Rules:
 - Keep the query simple and direct: The result set will be passed to an analysis agent for further refinement, so avoid unnecessary complexity such as multiple UNIONs, subqueries, or over-optimizations unless explicitly required by the question.
 - Handle edge cases like NULLs, aggregations (e.g., COUNT, SUM), date filtering (e.g., BETWEEN or DATE functions), and sorting.
 - Think step-by-step internally: (1) Identify key entities and required columns from the question. (2) Map them to schema fields. (3) Construct the query logically. (4) Verify it aligns with the question.
-
+- When creating the SQL query, any value used in a 'group by' clause must also be in the select list
+- Ensure that when doing joins, ensure that the table name that prepends the column name is the same as the table alias in the FROM clause
+- When performing joins, ensure that the table alias used in column references (e.g., ws.column_name) exactly matches the alias defined in the FROM or JOIN clause. For example, if you write "FROM workflow_steps ws", you must use "ws.column_name" not "w.column_name".
+- Ensure that if the user asks about products, always grab the product_id from the workflow_steps table when generating the SQL query.
 ### Input:
 Generate a SQL query that answers the question `{question}`.
 
@@ -141,17 +144,17 @@ answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=
 
 
 questions = [
-    #"count of automated vs manual steps completed. how many failed?",
+    #"Take a count of automated vs manual steps completed, broken down by product id. How many failed?",
     #"which workflow steps names take the longest to complete on average",
-    # "trend of manual vs automated steps completed over the last month",
-    "How is my team (team name EMEA Onboarding) doing against their SLAs?",
+    #"trend of manual vs automated steps completed over the last month",
+    #"How is my team (team name EMEA Onboarding) doing against their SLAs?"
     #"Which of my team members are completing the most/fewest tasks?",
     #"How long does it take to complete short code orders?",
     #"How is the performance trending over time?",
     #"How many tasks (by product?) are automated vs manual?",
     #"How is that trending over time?",
     #"Which automations have high failure rates?",
-    #"how long does it take to put a product into service? this might be duration of the overall workflow for a given product possibly by region or country",
+    "how long does it take to put a product into service? this might be duration of the overall workflow for a given product possibly by region or country",
 ]
 
 
