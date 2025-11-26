@@ -11,7 +11,7 @@ from pandas import read_sql
 from rich.console import Console
 from time import time
 from os import environ
-import AuroraLogging
+from AuroraLogging import AuroraLogging
 
 class Query(BaseModel):
     sql_query: str = Field(description="A syntactically correct SQL query")
@@ -236,6 +236,8 @@ for question in questions:
         console.print()
         console.print(f"Question: {question}")
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
+
+        AuroraLogging.log_to_database(question, sql_query, len(df), False, True)
 
     except Exception as e:
         console.print(sql_query)
