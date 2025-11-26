@@ -11,7 +11,7 @@ from pandas import read_sql
 from rich.console import Console
 from time import time
 from os import environ
-
+import AuroraLogging
 
 class Query(BaseModel):
     sql_query: str = Field(description="A syntactically correct SQL query")
