@@ -206,6 +206,17 @@ questions = [
     # "Which 3 people have the lowest average duration? please include the team name and average duration",
 ]
 
+try:
+    suggestion_df = read_sql(
+        text("SELECT question FROM aurora_discovered_kpis ORDER BY RAND() LIMIT 1"),
+        mysql_engine
+    )
+    if len(suggestion_df) > 0:
+        suggested_question = suggestion_df.iloc[0]['question']
+        console.print(f"\nYou can ask a question like: '{suggested_question}'\n")
+except Exception as e:
+    # If there's an error fetching suggestions, just continue
+    pass
 
 for question in questions:
     start_ts = time()
