@@ -13,6 +13,7 @@ from time import time
 from os import environ
 from AuroraLogging import AuroraLogging
 
+
 class Query(BaseModel):
     sql_query: str = Field(description="A syntactically correct SQL query")
 
@@ -237,7 +238,14 @@ for question in questions:
         console.print(f"Question: {question}")
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
 
-        AuroraLogging.log_to_database(question, sql_query, len(df), False, True)
+        #translate the question, sql_query, len(df) to AuroraLogging
+
+        db_logger = AuroraLogging()
+        db_logger.log_to_database(user_prompt=question,
+                                      generated_query=sql_query,
+                                      num_results=len(df),
+                                      user_feedback=False,
+                                      results_returned_fl=True)
 
     except Exception as e:
         console.print(sql_query)
