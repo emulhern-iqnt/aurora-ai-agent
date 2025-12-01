@@ -25,7 +25,8 @@ class Answer(BaseModel):
 SQL_HOST = environ.get("SQL_HOST", "localhost")
 SQL_USER = environ.get("SQL_USER", "zero")
 SQL_PASS = environ.get("SQL_PASS", "zero")
-mysql_engine = create_engine(f"mysql+pymysql://" + SQL_USER + ":zero@" + SQL_HOST + "/aurora")
+SQL_READ_DB = environ.get("SQL_READ_DB", "aurora")
+mysql_engine = create_engine(f"mysql+pymysql://" + SQL_USER + ":zero@" + SQL_HOST + "/" + SQL_READ_DB)
 
 
 console = Console()

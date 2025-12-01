@@ -10,7 +10,8 @@ class AuroraLogging(BaseModel):
         SQL_HOST = environ.get("SQL_HOST", "localhost")
         SQL_USER = environ.get("SQL_USER", "zero")
         SQL_PASS = environ.get("SQL_PASS", "zero")
-        mysql_write_engine = create_engine(f"mysql+pymysql://" + SQL_USER + ":zero@" + SQL_HOST + "/aurora_logging")
+        SQL_WRITE_DB = environ.get("SQL_WRITE_DB", "aurora_logging")
+        mysql_write_engine = create_engine(f"mysql+pymysql://" + SQL_USER + ":zero@" + SQL_HOST + "/" + SQL_WRITE_DB)
 
         """
         Class for logging Aurora AI agent queries and results.
