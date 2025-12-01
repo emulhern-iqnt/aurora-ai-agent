@@ -186,26 +186,6 @@ Give a brief answer to the question with this provided info, don't leave out any
 
 answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=["question", "query", "results"])
 
-
-questions = [
-    #"What is the average time for 'Emergency Services' products to enabled?",
-    #"Which 10 products take the longest to fully enable service and how long does it take?",
-    #"Over the last 3 months, how many orders of ANY status missed SLA target?",
-    #"How many orders are currently (in progress) missing SLA target?",
-    #"Which 3 products have the highest average missed SLA?",
-    #"Which five team members completed the most orders last month?",
-    #"number of workflows per team name from the last 3 months",
-    "Which of my team members (team name 'Service Operations') are performing the most tasks?",
-    #"Which of my team members (team name 'Aurora Support') are performing the most tasks?",
-    # "Average duration of orders broken down by month including team names", # !!!
-    # "Count of automated vs manual steps weekly breakdown from the last month",
-    # "Are average times for automated steps over the last 3 months (group by month) improving? include the month and average time",
-    # "automated vs non-automated steps that failed last month",
-    # "Which 3 teams have the highest average duration?",
-    # "Which 3 products have the highest average duration?",
-    # "Which 3 people have the lowest average duration? please include the team name and average duration",
-]
-
 try:
     suggestion_df = read_sql(
         text("SELECT question FROM aurora_discovered_kpis ORDER BY RAND() LIMIT 1"),
@@ -218,7 +198,20 @@ except Exception as e:
     # If there's an error fetching suggestions, just continue
     pass
 
-for question in questions:
+# Remove the questions array and replace with interactive loop
+while True:
+    # Get user input
+    question = console.input("\n[bold cyan]Enter your question (or 'exit' to quit): [/bold cyan]")
+    
+    # Check if user wants to exit
+    if question.lower() in ['exit', 'quit', 'q']:
+        console.print("[yellow]Exiting...[/yellow]")
+        break
+    
+    # Skip empty input
+    if not question.strip():
+        continue
+
     start_ts = time()
 
     this_ts = time()
@@ -249,21 +242,28 @@ for question in questions:
         console.print(f"Question: {question}")
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
 
-        #translate the question, sql_query, len(df) to AuroraLogging
+        # Prepare logging parameters
+        user_prompt = question
+        generated_query = sql_query
+        num_results = len(df)
+        user_feedback = False  # or None if you want to leave it undefined
+        results_returned_fl = True
 
-        db_logger = AuroraLogging()
-        db_logger.log_to_database(user_prompt=question,
-                                      generated_query=sql_query,
-                                      num_results=len(df),
-                                      user_feedback=False,
-                                      results_returned_fl=True)
+        if num_results is None:
+           results_returned_fl = False
+           num_results = 0
+
+        if num_results == 0:
+            results_returned_fl = False
+
+        # Create an instance and call the method
+        logger = AuroraLogging()
+        logger.log_to_database(user_prompt, generated_query, num_results, user_feedback, results_returned_fl)
 
     except Exception as e:
         console.print(sql_query)
         console.print(f"Error: {e}")
 
-
     print()
     print("*" * 60)
-    print()
     print()
