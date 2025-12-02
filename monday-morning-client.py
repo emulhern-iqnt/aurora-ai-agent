@@ -12,8 +12,7 @@ from rich.console import Console
 from time import time
 from os import environ
 from AuroraLogging import AuroraLogging
-import kpi_explorer
-
+from KPIExplorer import KPIExplorer
 
 class Query(BaseModel):
     sql_query: str = Field(description="A syntactically correct SQL query")
