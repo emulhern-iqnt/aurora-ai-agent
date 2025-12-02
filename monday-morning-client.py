@@ -12,6 +12,7 @@ from rich.console import Console
 from time import time
 from os import environ
 from AuroraLogging import AuroraLogging
+import kpi_explorer
 
 
 class Query(BaseModel):

@@ -186,7 +186,7 @@ question_prompt_template = PromptTemplate(template=question_prompt, input_variab
 
 questions = 0
 
-
+new_kpis_count = 0
 while questions <= 10:
     fetch_questions = read_sql("SELECT question FROM aurora_discovered_kpis", mysql_engine)
     old_questions = fetch_questions.question.tolist()
@@ -231,6 +231,12 @@ while questions <= 10:
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer}")
         questions += 1
 
+        check_query = read_sql("SELECT distinct(sql_query) FROM aurora_discovered_kpis", mysql_engine)
+
+        if sql_query in check_query.sql_query.tolist():
+            console.print("Duplicate query found, skipping...")
+            continue
+
         with mysql_engine.connect() as conn:
             query = text("INSERT INTO aurora_discovered_kpis (question,sql_query,answer,question_gen_time_seconds,"
                          "query_gen_time_seconds,answer_gen_time_seconds) VALUES (:question,:sql_query,:answer,"
@@ -244,6 +250,8 @@ while questions <= 10:
                 "answer_gen_time_seconds": answer_gen_seconds
             })
             conn.commit()
+            console.print("Query saved to database.")
+            new_kpis_count += 1
 
     except Exception as e:
         console.print(sql_query)
@@ -254,3 +262,4 @@ while questions <= 10:
     print("*" * 60)
     print()
     print()
+console.print(f"New KPIs generated: {new_kpis_count}")
