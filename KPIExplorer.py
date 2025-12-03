@@ -155,7 +155,7 @@ class KPIExplorer:
         )
         """
         
-        self.sample_data = "Sample workflow_steps data: Various workflow steps with durations, team assignments, and automation flags"
+        self.sample_data = read_sql("SELECT * FROM workflow_steps ORDER BY RAND() LIMIT 10", self.mysql_engine).to_markdown()
 
         self.question_prompt = """
         ### Improved Prompt for Exploratory Question Generation
@@ -217,7 +217,7 @@ class KPIExplorer:
             )
             questions.append(response.question)
             old_questions_str += f"\n{response.question}"
-        self.console.print("Generated questions: " + str(questions))
+        self.console.print("")
         return questions
 
     def explore_question(self, question, show_output=True):
@@ -231,6 +231,7 @@ class KPIExplorer:
         Returns:
             Dictionary with question, sql_query, dataframe, answer, and timing info
         """
+        self.console.print(f"Question: {question}")
         start_ts = time()
         result = {
             'question': question,
@@ -281,9 +282,12 @@ class KPIExplorer:
         except Exception as e:
             result['error'] = str(e)
             if show_output:
+                self.console.print("")
                 self.console.print(f"[bold red]Error:[/bold red] {e}")
+                self.console.print("-"*60)
+                self.console.print(f"SQL: {result['sql_query']}")
                 if 'sql_query' in result:
-                    self.console.print(f"SQL: {result['sql_query']}")
+                    self.console.print("*"*60)
 
         return result
 
@@ -304,3 +308,26 @@ class KPIExplorer:
             results.append(result)
 
         return results
+
+    def log_to_database(self, user_prompt, generated_query, answer, question_gen_seconds, query_gen_seconds,
+                        answer_gen_seconds, num_results, user_feedback, results_returned_fl):
+        check_query = read_sql("SELECT distinct(sql_query) FROM aurora_discovered_kpis", self.mysql_engine)
+
+        if generated_query in check_query.sql_query.tolist():
+            self.console.print("Duplicate query found, skipping...")
+            return
+
+        with self.mysql_engine.connect() as conn:
+            query = text("INSERT INTO aurora_discovered_kpis (question,sql_query,answer,question_gen_time_seconds,"
+                         "query_gen_time_seconds,answer_gen_time_seconds) VALUES (:question,:sql_query,:answer,"
+                         ":question_gen_time_seconds,:query_gen_time_seconds,:answer_gen_time_seconds)")
+            conn.execute(query, {
+                "question": user_prompt,
+                "sql_query": generated_query,
+                "answer": answer,
+                "question_gen_time_seconds": question_gen_seconds,
+                "query_gen_time_seconds": query_gen_seconds,
+                "answer_gen_time_seconds": answer_gen_seconds
+            })
+            conn.commit()
+            self.console.print("Query saved to database.")

@@ -187,23 +187,24 @@ Give a brief answer to the question with this provided info, don't leave out any
 
 answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=["question", "query", "results"])
 
-try:
-    suggestion_df = read_sql(
-        text("SELECT question FROM aurora_discovered_kpis ORDER BY RAND() LIMIT 1"),
-        mysql_engine
-    )
-    if len(suggestion_df) > 0:
-        suggested_question = suggestion_df.iloc[0]['question']
-        console.print(f"\nYou can ask a question like: '{suggested_question}'\n")
-except Exception as e:
-    # If there's an error fetching suggestions, just continue
-    pass
-
 # Remove the questions array and replace with interactive loop
 while True:
     # Get user input
+    try:
+        suggestion_df = read_sql(
+            text("SELECT question FROM aurora_discovered_kpis ORDER BY RAND() LIMIT 1"),
+            mysql_engine
+        )
+        if len(suggestion_df) > 0:
+            suggested_question = suggestion_df.iloc[0]['question']
+            console.print(f"\nYou can ask a question like: '{suggested_question}'\n")
+    except Exception as e:
+        # If there's an error fetching suggestions, just continue
+        pass
+
     question = console.input("\n[bold cyan]Enter your question (or 'exit' to quit, 'explore' for KPI exploration): [/bold cyan]")
-    
+
+
     # Check if user wants to exit
     if question.lower() in ['exit', 'quit', 'q']:
         console.print("[yellow]Exiting...[/yellow]")
@@ -224,6 +225,8 @@ while True:
         for i, q in enumerate(generated_questions, 1):
             console.print(f"{i}. {q}")
 
+        console.print("")
+        console.print("")
         console.print("\n[bold magenta]Exploring questions...[/bold magenta]\n")
         results = explorer.explore_multiple(generated_questions, show_output=True)
 
