@@ -35,7 +35,8 @@ class KPIExplorer:
             SQL_HOST = environ.get("SQL_HOST", "localhost")
             SQL_USER = environ.get("SQL_USER", "zero")
             SQL_PASS = environ.get("SQL_PASS", "zero")
-            self.mysql_engine = create_engine(f"mysql+pymysql://{SQL_USER}:zero@{SQL_HOST}/aurora_data")
+            SQL_READ_DB = environ.get("SQL_READ_DB", "aurora")
+            self.mysql_engine = create_engine(f"mysql+pymysql://{SQL_USER}:{SQL_PASS}@{SQL_HOST}/{SQL_READ_DB}")
         else:
             self.mysql_engine = mysql_engine
 

@@ -40,7 +40,7 @@ def create_db_engine_with_retry(connection_string, max_retries=5, retry_delay=2)
                 raise Exception(f"Failed to connect to database after {max_retries} attempts: {e}")
 
 
-mysql_engine = create_db_engine_with_retry(f"mysql+pymysql://root:zero@10.44.12.18/aurora_data")
+mysql_engine = create_db_engine_with_retry(f"mysql+pymysql://root:zero@10.44.12.18/aurora")
 
 
 console = Console()
