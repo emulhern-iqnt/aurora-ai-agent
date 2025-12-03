@@ -213,7 +213,7 @@ while True:
     # Check if user wants KPI exploration
     if question.lower() == 'explore':
         console.print("[bold magenta]Starting KPI Exploration...[/bold magenta]")
-        explorer = KPIExplorer(mysql_engine=mysql_engine, console=console)
+        explorer = KPIExplorer(console=console)
 
         # Ask how many questions to generate
         count_input = console.input("[cyan]How many questions to explore? (default: 5): [/cyan]")

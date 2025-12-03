@@ -110,7 +110,7 @@ class KPIExplorer:
 
         self.code_prompt_template = PromptTemplate(
             template=self.query_prompt,
-            input_variables=["question"]
+            input_variables=["schema","question"]
         )
 
         self.answer_prompt = """### Input:
@@ -192,7 +192,7 @@ class KPIExplorer:
             input_variables=["schema", "data", "old_questions"]
         )
 
-    def generate_questions(self, count=5, old_questions=None):
+    def generate_questions(self, count=5):
         self.console.print("Generating questions...")
         """
         Generate new KPI exploration questions
@@ -204,7 +204,12 @@ class KPIExplorer:
         Returns:
             List of generated questions
         """
-        old_questions_str = "\n".join(old_questions) if old_questions else "None"
+        fetch_questions = read_sql("SELECT question FROM aurora_discovered_kpis", self.mysql_engine)
+        old_questions = fetch_questions.question.tolist()
+
+        old_questions_str = "\n".join([f"- {question}" for question in old_questions])
+        if old_questions_str == "":
+            old_questions_str = "No previous questions."
 
         questions = []
         for _ in range(count):
@@ -243,7 +248,7 @@ class KPIExplorer:
             # Generate SQL query
             this_ts = time()
             response = self.sql_llm_so.invoke(
-                self.code_prompt_template.format(question=question)
+                self.code_prompt_template.format(schema=self.workflows_schema, question=question)
             )
             sql_query = response.sql_query
             result['sql_query'] = sql_query
