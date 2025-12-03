@@ -84,26 +84,24 @@ class KPIExplorer:
         
         Schema:
         CREATE TABLE `workflow_steps` (
-          `index` bigint(20) DEFAULT NULL,
-          `workflow_step_id` bigint(20) DEFAULT NULL,
-          `order_id` bigint(20) DEFAULT NULL,
-          `product_id` bigint(20) DEFAULT NULL,
-          `team_manager_name` text DEFAULT NULL,
-          `order_item_id` bigint(20) DEFAULT NULL,
-          `workflow_id` bigint(20) DEFAULT NULL,
-          `workflow_name` text DEFAULT NULL,
-          `workflow_step_description` text DEFAULT NULL,
-          `status_during_step` text DEFAULT NULL,
-          `estimated_duration_days` double DEFAULT NULL,
-          `team_name` text DEFAULT NULL,
-          `team_id` bigint(20) DEFAULT NULL,
-          `employee_name` text DEFAULT NULL,
-          `promised_due_dt` datetime DEFAULT NULL,
-          `is_automated_step` bigint(20) DEFAULT NULL,
-          `elapsed_duration_hours` double DEFAULT NULL,
-          `workflow_step_date` datetime DEFAULT NULL,
-          KEY `ix_workflow_steps_index` (`index`)
-        )
+  `index` bigint(20) DEFAULT NULL,
+  `workflow_step_id` bigint(20) DEFAULT NULL,
+  `order_id` double DEFAULT NULL,
+  `order_item_id` double DEFAULT NULL,
+  `workflow_id` bigint(20) DEFAULT NULL,
+  `workflow_step_name` text DEFAULT NULL,
+  `workflow_step_description` text DEFAULT NULL,
+  `effective_parent_workflow_status` text DEFAULT NULL,
+  `workflow_step_estimated_duration_days` double DEFAULT NULL,
+  `team_name` text DEFAULT NULL,
+  `team_id` bigint(20) DEFAULT NULL,
+  `team_member` text DEFAULT NULL,
+  `workflow_step_due_date` datetime DEFAULT NULL,
+  `is_automated_step` bigint(20) DEFAULT NULL,
+  `workflow_step_elapsed_duration_hours` double DEFAULT NULL,
+  `workflow_step_date` datetime DEFAULT NULL,
+  KEY `ix_workflow_steps_index` (`index`)
+)
         
         ### Response format:
         Based on the provided schema and question, here is the MariaDB SQL query:
@@ -134,26 +132,24 @@ class KPIExplorer:
         # Define schema for question generation
         self.workflows_schema = """
         CREATE TABLE `workflow_steps` (
-          `index` bigint(20) DEFAULT NULL,
-          `workflow_step_id` bigint(20) DEFAULT NULL,
-          `order_id` bigint(20) DEFAULT NULL,
-          `product_id` bigint(20) DEFAULT NULL,
-          `team_manager_name` text DEFAULT NULL,
-          `order_item_id` bigint(20) DEFAULT NULL,
-          `workflow_id` bigint(20) DEFAULT NULL,
-          `workflow_name` text DEFAULT NULL,
-          `workflow_step_description` text DEFAULT NULL,
-          `status_during_step` text DEFAULT NULL,
-          `estimated_duration_days` double DEFAULT NULL,
-          `team_name` text DEFAULT NULL,
-          `team_id` bigint(20) DEFAULT NULL,
-          `employee_name` text DEFAULT NULL,
-          `promised_due_dt` datetime DEFAULT NULL,
-          `is_automated_step` bigint(20) DEFAULT NULL,
-          `elapsed_duration_hours` double DEFAULT NULL,
-          `workflow_step_date` datetime DEFAULT NULL,
-          KEY `ix_workflow_steps_index` (`index`)
-        )
+  `index` bigint(20) DEFAULT NULL,
+  `workflow_step_id` bigint(20) DEFAULT NULL,
+  `order_id` double DEFAULT NULL,
+  `order_item_id` double DEFAULT NULL,
+  `workflow_id` bigint(20) DEFAULT NULL,
+  `workflow_step_name` text DEFAULT NULL,
+  `workflow_step_description` text DEFAULT NULL,
+  `effective_parent_workflow_status` text DEFAULT NULL,
+  `workflow_step_estimated_duration_days` double DEFAULT NULL,
+  `team_name` text DEFAULT NULL,
+  `team_id` bigint(20) DEFAULT NULL,
+  `team_member` text DEFAULT NULL,
+  `workflow_step_due_date` datetime DEFAULT NULL,
+  `is_automated_step` bigint(20) DEFAULT NULL,
+  `workflow_step_elapsed_duration_hours` double DEFAULT NULL,
+  `workflow_step_date` datetime DEFAULT NULL,
+  KEY `ix_workflow_steps_index` (`index`)
+)
         """
         
         self.sample_data = read_sql("SELECT * FROM workflow_steps ORDER BY RAND() LIMIT 10", self.mysql_engine).to_markdown()
