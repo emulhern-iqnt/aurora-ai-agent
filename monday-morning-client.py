@@ -202,13 +202,45 @@ except Exception as e:
 # Remove the questions array and replace with interactive loop
 while True:
     # Get user input
-    question = console.input("\n[bold cyan]Enter your question (or 'exit' to quit): [/bold cyan]")
+    question = console.input("\n[bold cyan]Enter your question (or 'exit' to quit, 'explore' for KPI exploration): [/bold cyan]")
     
     # Check if user wants to exit
     if question.lower() in ['exit', 'quit', 'q']:
         console.print("[yellow]Exiting...[/yellow]")
         break
-    
+
+    # Check if user wants KPI exploration
+    if question.lower() == 'explore':
+        console.print("[bold magenta]Starting KPI Exploration...[/bold magenta]")
+        explorer = KPIExplorer(mysql_engine=mysql_engine, console=console)
+
+        # Ask how many questions to generate
+        count_input = console.input("[cyan]How many questions to explore? (default: 5): [/cyan]")
+        count = int(count_input) if count_input.strip().isdigit() else 5
+
+        # Generate and explore questions
+        generated_questions = explorer.generate_questions(count=count)
+        console.print(f"\n[bold green]Generated {len(generated_questions)} questions:[/bold green]")
+        for i, q in enumerate(generated_questions, 1):
+            console.print(f"{i}. {q}")
+
+        console.print("\n[bold magenta]Exploring questions...[/bold magenta]\n")
+        results = explorer.explore_multiple(generated_questions, show_output=True)
+
+        # Log successful explorations
+        for result in results:
+            if result['success']:
+                logger = AuroraLogging()
+                logger.log_to_database(
+                    user_prompt=result['question'],
+                    generated_query=result['sql_query'],
+                    num_results=len(result['dataframe']),
+                    user_feedback=None,
+                    results_returned_fl=True
+                )
+
+        continue
+
     # Skip empty input
     if not question.strip():
         continue

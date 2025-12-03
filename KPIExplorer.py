@@ -35,7 +35,7 @@ class KPIExplorer:
             SQL_HOST = environ.get("SQL_HOST", "localhost")
             SQL_USER = environ.get("SQL_USER", "zero")
             SQL_PASS = environ.get("SQL_PASS", "zero")
-            self.mysql_engine = create_engine(f"mysql+pymysql://{SQL_USER}:zero@{SQL_HOST}/aurora")
+            self.mysql_engine = create_engine(f"mysql+pymysql://{SQL_USER}:zero@{SQL_HOST}/aurora_data")
         else:
             self.mysql_engine = mysql_engine
 
@@ -130,6 +130,33 @@ class KPIExplorer:
             input_variables=["question", "query", "results"]
         )
 
+        # Define schema for question generation
+        self.workflows_schema = """
+        CREATE TABLE `workflow_steps` (
+          `index` bigint(20) DEFAULT NULL,
+          `workflow_step_id` bigint(20) DEFAULT NULL,
+          `order_id` bigint(20) DEFAULT NULL,
+          `product_id` bigint(20) DEFAULT NULL,
+          `team_manager_name` text DEFAULT NULL,
+          `order_item_id` bigint(20) DEFAULT NULL,
+          `workflow_id` bigint(20) DEFAULT NULL,
+          `workflow_name` text DEFAULT NULL,
+          `workflow_step_description` text DEFAULT NULL,
+          `status_during_step` text DEFAULT NULL,
+          `estimated_duration_days` double DEFAULT NULL,
+          `team_name` text DEFAULT NULL,
+          `team_id` bigint(20) DEFAULT NULL,
+          `employee_name` text DEFAULT NULL,
+          `promised_due_dt` datetime DEFAULT NULL,
+          `is_automated_step` bigint(20) DEFAULT NULL,
+          `elapsed_duration_hours` double DEFAULT NULL,
+          `workflow_step_date` datetime DEFAULT NULL,
+          KEY `ix_workflow_steps_index` (`index`)
+        )
+        """
+        
+        self.sample_data = "Sample workflow_steps data: Various workflow steps with durations, team assignments, and automation flags"
+
         self.question_prompt = """
         ### Improved Prompt for Exploratory Question Generation
         
@@ -162,10 +189,11 @@ class KPIExplorer:
 
         self.question_prompt_template = PromptTemplate(
             template=self.question_prompt,
-            input_variables=["count", "old_questions"]
+            input_variables=["schema", "data", "old_questions"]
         )
 
     def generate_questions(self, count=5, old_questions=None):
+        self.console.print("Generating questions...")
         """
         Generate new KPI exploration questions
 
@@ -182,13 +210,14 @@ class KPIExplorer:
         for _ in range(count):
             response = self.explorer_llm_so.invoke(
                 self.question_prompt_template.format(
-                    count=1,
+                    schema=self.workflows_schema,
+                    data=self.sample_data,
                     old_questions=old_questions_str
                 )
             )
             questions.append(response.question)
             old_questions_str += f"\n{response.question}"
-
+        self.console.print("Generated questions: " + str(questions))
         return questions
 
     def explore_question(self, question, show_output=True):
@@ -275,4 +304,3 @@ class KPIExplorer:
             results.append(result)
 
         return results
-
