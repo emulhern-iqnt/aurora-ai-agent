@@ -6,7 +6,7 @@ from os import environ
 
 
 class AuroraLogging(BaseModel):
-    def log_to_database(self, user_prompt: str, generated_query: str, num_results: int, user_feedback: Optional[bool], results_returned_fl: Optional[bool]):
+    def log_new_prompt(self, user_prompt: str, generated_query: str, num_results: int, user_feedback: Optional[bool], results_returned_fl: Optional[bool]):
         SQL_HOST = environ.get("SQL_HOST", "localhost")
         SQL_USER = environ.get("SQL_USER", "zero")
         SQL_PASS = environ.get("SQL_PASS", "zero")

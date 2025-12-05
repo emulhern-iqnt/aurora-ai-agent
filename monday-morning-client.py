@@ -234,13 +234,21 @@ while True:
         for result in results:
             if result['success']:
                 logger = AuroraLogging()
-                logger.log_to_database(
+                logger.log_new_prompt(
                     user_prompt=result['question'],
                     generated_query=result['sql_query'],
                     num_results=len(result['dataframe']),
                     user_feedback=None,
                     results_returned_fl=True
                 )
+                explorer.log_new_kpi(
+                    user_prompt=result['question'],
+                    generated_query=result['sql_query'],
+                    answer=result['answer'],
+                    question_gen_seconds=result['question_gen_seconds'],
+                    query_gen_seconds=result['query_gen_seconds'],
+                    answer_gen_seconds=result['answer_gen_seconds'])
+
 
         continue
 

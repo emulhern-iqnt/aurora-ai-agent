@@ -210,6 +210,8 @@ class KPIExplorer:
 
         questions = []
         for _ in range(count):
+            start_ts = time()
+
             response = self.explorer_llm_so.invoke(
                 self.question_prompt_template.format(
                     schema=self.workflows_schema,
@@ -217,12 +219,14 @@ class KPIExplorer:
                     old_questions=old_questions_str
                 )
             )
-            questions.append(response.question)
+            this_ts = time()
+            question_gen_seconds = this_ts - start_ts
+            questions.append({"question": response.question, "gen_time": question_gen_seconds})
             old_questions_str += f"\n{response.question}"
         self.console.print("")
         return questions
 
-    def explore_question(self, question, show_output=True):
+    def explore_question(self, question, question_gen_seconds, show_output=True):
         """
         Explore a single question by generating SQL, executing it, and generating an answer
 
@@ -237,6 +241,7 @@ class KPIExplorer:
         start_ts = time()
         result = {
             'question': question,
+            'question_gen_seconds': question_gen_seconds,
             'success': False,
             'error': None
         }
@@ -306,13 +311,14 @@ class KPIExplorer:
         """
         results = []
         for question in questions:
-            result = self.explore_question(question, show_output)
+            result = self.explore_question(question['question'], question['gen_time'], show_output)
             results.append(result)
 
         return results
 
-    def log_to_database(self, user_prompt, generated_query, answer, question_gen_seconds, query_gen_seconds,
-                        answer_gen_seconds, num_results, user_feedback, results_returned_fl):
+    def log_new_kpi(self, user_prompt, generated_query, answer, question_gen_seconds, query_gen_seconds,
+                        answer_gen_seconds):
+        self.console.print("Attempting to save new KPI to database...")
         check_query = read_sql("SELECT distinct(sql_query) FROM aurora_discovered_kpis", self.mysql_engine)
 
         if generated_query in check_query.sql_query.tolist():
