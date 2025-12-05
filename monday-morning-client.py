@@ -234,13 +234,13 @@ while True:
         for result in results:
             if result['success']:
                 logger = AuroraLogging()
-                logger.log_new_prompt(
-                    user_prompt=result['question'],
-                    generated_query=result['sql_query'],
-                    num_results=len(result['dataframe']),
-                    user_feedback=None,
-                    results_returned_fl=True
-                )
+                # logger.log_new_prompt(
+                #     user_prompt=result['question'],
+                #     generated_query=result['sql_query'],
+                #     num_results=len(result['dataframe']),
+                #     user_feedback=None,
+                #     results_returned_fl=True
+                # )
                 explorer.log_new_kpi(
                     user_prompt=result['question'],
                     generated_query=result['sql_query'],
@@ -302,7 +302,7 @@ while True:
 
         # Create an instance and call the method
         logger = AuroraLogging()
-        logger.log_to_database(user_prompt, generated_query, num_results, user_feedback, results_returned_fl)
+        logger.log_new_prompt(user_prompt, generated_query, num_results, user_feedback, results_returned_fl)
 
     except Exception as e:
         console.print(sql_query)
