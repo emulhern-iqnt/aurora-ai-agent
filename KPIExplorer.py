@@ -7,7 +7,7 @@ from pandas import read_sql
 from rich.console import Console
 from time import time, sleep
 from os import environ
-
+from SQLErrorHandling import SQLErrorHandler
 
 class DatabaseQuestion(BaseModel):
     question: str = Field(description="A natural language question about the database intended for exploring new KPIs")
@@ -72,6 +72,8 @@ class KPIExplorer:
 
         # Setup prompts
         self._setup_prompts()
+
+        self.ExplorerErrors = SQLErrorHandler()
 
     def _setup_prompts(self):
         """Setup all prompt templates"""
@@ -288,6 +290,7 @@ class KPIExplorer:
 
         except Exception as e:
             result['error'] = str(e)
+            self.ExplorerErrors.log_error(str(e))
             if show_output:
                 self.console.print("")
                 self.console.print(f"[bold red]Error:[/bold red] {e}")

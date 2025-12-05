@@ -13,6 +13,7 @@ from time import time
 from os import environ
 from AuroraLogging import AuroraLogging
 from KPIExplorer import KPIExplorer
+from SQLErrorHandling import SQLErrorHandler
 
 class Query(BaseModel):
     sql_query: str = Field(description="A syntactically correct SQL query")
@@ -74,6 +75,7 @@ You are an expert SQL query generator specializing in MariaDB. Your task is to a
 - Only use LIMIT when I say things like "show me 10 examples", "sample rows", "first 5", etc.
 - The effective_parent_workflow_status field in the workflow_steps table is for informational purposes only and should never be used in any where statements.
 - Products are put into service via one or more workflows, and workflows have several steps, so join tables as needed when answering questions about products, services and orders.
+- Do not attempt to generate SQl queries that utilize column names not found in the specified schemas.
 
 Schema:
 CREATE TABLE `products` (
@@ -187,6 +189,8 @@ Give a brief answer to the question with this provided info, don't leave out any
 
 answer_prompt_template = PromptTemplate(template=answer_prompt, input_variables=["question", "query", "results"])
 
+
+PromptErrors = SQLErrorHandler()
 # Remove the questions array and replace with interactive loop
 while True:
     # Get user input
@@ -305,8 +309,9 @@ while True:
         logger.log_new_prompt(user_prompt, generated_query, num_results, user_feedback, results_returned_fl)
 
     except Exception as e:
-        console.print(sql_query)
         console.print(f"Error: {e}")
+        console.print(sql_query)
+        PromptErrors.log_error(str(e))
 
     print()
     print("*" * 60)
