@@ -40,7 +40,7 @@ def create_db_engine_with_retry(connection_string, max_retries=5, retry_delay=2)
                 raise Exception(f"Failed to connect to database after {max_retries} attempts: {e}")
 
 
-mysql_engine = create_db_engine_with_retry(f"mysql+pymysql://root:zero@10.44.12.18/aurora_data")
+mysql_engine = create_db_engine_with_retry(f"mysql+pymysql://root:zero@10.44.12.18/aurora")
 
 
 console = Console()
@@ -77,25 +77,21 @@ explorer_llm_so = explorer_llm_base.with_structured_output(DatabaseQuestion)
 workflows_schema = """
 CREATE TABLE `workflow_steps` (
   `index` bigint(20) DEFAULT NULL,
-  `step_instance_id` bigint(20) DEFAULT NULL,
-  `step_id` bigint(20) DEFAULT NULL,
-  `order_id` bigint(20) DEFAULT NULL,
-  `product_id` bigint(20) DEFAULT NULL,
-  `service_mgr_name` text DEFAULT NULL,
-  `order_item_id` bigint(20) DEFAULT NULL,
-  `process_instance_id` bigint(20) DEFAULT NULL,
-  `process_name` text DEFAULT NULL,
-  `name` text DEFAULT NULL,
-  `type_workflow_action_ref` text DEFAULT NULL,
-  `estimated_duration` double DEFAULT NULL,
+  `workflow_step_id` bigint(20) DEFAULT NULL,
+  `order_id` double DEFAULT NULL,
+  `order_item_id` double DEFAULT NULL,
+  `workflow_id` bigint(20) DEFAULT NULL,
+  `workflow_step_name` text DEFAULT NULL,
+  `workflow_step_description` text DEFAULT NULL,
+  `effective_parent_workflow_status` text DEFAULT NULL,
+  `workflow_step_estimated_duration_days` double DEFAULT NULL,
   `team_name` text DEFAULT NULL,
   `team_id` bigint(20) DEFAULT NULL,
-  `employee_name` text DEFAULT NULL,
-  `due_dt` datetime DEFAULT NULL,
+  `team_member` text DEFAULT NULL,
+  `workflow_step_due_date` datetime DEFAULT NULL,
   `is_automated_step` bigint(20) DEFAULT NULL,
-  `elapsed_duration_hours` double DEFAULT NULL,
-  `update_dt` datetime DEFAULT NULL,
-  `action_dt` datetime DEFAULT NULL,
+  `workflow_step_elapsed_duration_hours` double DEFAULT NULL,
+  `workflow_step_date` datetime DEFAULT NULL,
   KEY `ix_workflow_steps_index` (`index`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 """
@@ -186,7 +182,7 @@ question_prompt_template = PromptTemplate(template=question_prompt, input_variab
 
 questions = 0
 
-
+new_kpis_count = 0
 while questions <= 10:
     fetch_questions = read_sql("SELECT question FROM aurora_discovered_kpis", mysql_engine)
     old_questions = fetch_questions.question.tolist()
@@ -231,6 +227,12 @@ while questions <= 10:
         console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer}")
         questions += 1
 
+        check_query = read_sql("SELECT distinct(sql_query) FROM aurora_discovered_kpis", mysql_engine)
+
+        if sql_query in check_query.sql_query.tolist():
+            console.print("Duplicate query found, skipping...")
+            continue
+
         with mysql_engine.connect() as conn:
             query = text("INSERT INTO aurora_discovered_kpis (question,sql_query,answer,question_gen_time_seconds,"
                          "query_gen_time_seconds,answer_gen_time_seconds) VALUES (:question,:sql_query,:answer,"
@@ -244,6 +246,8 @@ while questions <= 10:
                 "answer_gen_time_seconds": answer_gen_seconds
             })
             conn.commit()
+            console.print("Query saved to database.")
+            new_kpis_count += 1
 
     except Exception as e:
         console.print(sql_query)
@@ -254,3 +258,4 @@ while questions <= 10:
     print("*" * 60)
     print()
     print()
+console.print(f"New KPIs generated: {new_kpis_count}")
