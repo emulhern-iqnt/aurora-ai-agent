@@ -208,6 +208,9 @@ while True:
 
     question = console.input("\n[bold cyan]Enter your question (or 'exit' to quit, 'explore' for KPI exploration): [/bold cyan]")
 
+    # Skip empty input
+    if not question.strip():
+        continue
 
     # Check if user wants to exit
     if question.lower() in ['exit', 'quit', 'q']:
@@ -254,65 +257,64 @@ while True:
                     answer_gen_seconds=result['answer_gen_seconds'])
 
 
-        continue
-
-    # Skip empty input
-    if not question.strip():
-        continue
-
-    start_ts = time()
-
-    this_ts = time()
-    response = sql_llm_so.invoke([
-        SystemMessage(content=sql_system_prompt),
-        HumanMessage(content=question_prompt_template.format(question=question))
-    ])
-    sql_query = response.sql_query
-
-    query_gen_seconds = time() - this_ts
-
-    try:
-        this_ts = time()
-        df = read_sql(text(sql_query), mysql_engine)
-        query_exec_seconds = time() - this_ts
+        #continue
+    else:
+        start_ts = time()
 
         this_ts = time()
-        answer_response = answer_llm_so.invoke(answer_prompt_template.format(
-            question=question,
-            query=sql_query,
-            results=df.to_markdown()
-        ))
-        answer_gen_seconds = time() - this_ts
+        response = sql_llm_so.invoke([
+            SystemMessage(content=sql_system_prompt),
+            HumanMessage(content=question_prompt_template.format(question=question))
+        ])
+        sql_query = response.sql_query
 
-        console.print(f"SQL ({query_gen_seconds:.2f}s):\n{sql_query}")
-        console.print(f"Dataset ({query_exec_seconds:.2f}s):\n{df.head(20).to_markdown()}")
-        console.print()
-        console.print(f"Question: {question}")
-        console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
+        query_gen_seconds = time() - this_ts
 
-        # Prepare logging parameters
-        user_prompt = question
-        generated_query = sql_query
-        num_results = len(df)
-        user_feedback = False  # or None if you want to leave it undefined
-        results_returned_fl = True
+        try:
+            this_ts = time()
+            df = read_sql(text(sql_query), mysql_engine)
+            query_exec_seconds = time() - this_ts
 
-        if num_results is None:
-           results_returned_fl = False
-           num_results = 0
+            this_ts = time()
+            answer_response = answer_llm_so.invoke(answer_prompt_template.format(
+                question=question,
+                query=sql_query,
+                results=df.to_markdown()
+            ))
+            answer_gen_seconds = time() - this_ts
 
-        if num_results == 0:
-            results_returned_fl = False
+            console.print(f"SQL ({query_gen_seconds:.2f}s):\n{sql_query}")
+            console.print(f"Dataset ({query_exec_seconds:.2f}s):\n{df.head(20).to_markdown()}")
+            console.print()
+            console.print(f"Question: {question}")
+            console.print(f"Answer ({answer_gen_seconds:.2f}s) ({time() - start_ts:.2f}s):\n{answer_response.answer}")
 
-        # Create an instance and call the method
-        logger = AuroraLogging()
-        logger.log_new_prompt(user_prompt, generated_query, num_results, user_feedback, results_returned_fl)
+            # Prepare logging parameters
+            user_prompt = question
+            generated_query = sql_query
+            num_results = len(df)
+            user_feedback = False  # or None if you want to leave it undefined
+            results_returned_fl = True
 
-    except Exception as e:
-        console.print(f"Error: {e}")
-        console.print(sql_query)
-        PromptErrors.log_error(str(e))
+            if num_results is None:
+               results_returned_fl = False
+               num_results = 0
+
+            if num_results == 0:
+                results_returned_fl = False
+
+            # Create an instance and call the method
+            logger = AuroraLogging()
+            logger.log_new_prompt(user_prompt, generated_query, num_results, user_feedback, results_returned_fl)
+
+        except Exception as e:
+            console.print(f"Error: {e}")
+            console.print(sql_query)
+            PromptErrors.log_error(str(e))
 
     print()
     print("*" * 60)
+    print()
+    print("Prompt Errors: %s" % (PromptErrors.get_errors()))
+    print("Explorer Errors: %s" % (KPIExplorer().ExplorerErrors.get_errors()))
     print()
