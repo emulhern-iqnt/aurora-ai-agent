@@ -317,4 +317,19 @@ while True:
     print()
     print("Prompt Errors: %s" % (PromptErrors.get_errors()))
     print("Explorer Errors: %s" % (KPIExplorer().ExplorerErrors.get_errors()))
-    print()
+    errors = PromptErrors.get_errors() + KPIExplorer().ExplorerErrors.get_errors()
+    if errors:
+        # Feed errors into sql_llm_base for analysis
+        enriched_prompt = """
+            Based on the following errors observed during prompt execution, summarize findings and suggest improvements:
+            {errors}
+            """
+        formatted_errors = "\n".join(errors)
+        error_analysis_prompt = enriched_prompt.format(errors=formatted_errors)
+
+        error_analysis_response = sql_llm_so.invoke(error_analysis_prompt)
+        question_prompt += f"\n\n### Error Insights:\n{error_analysis_response.sql_query}"
+
+        # Output the enriched question prompt to ensure it's updated
+        console.print(f"Updated Question Prompt with Error Insights:\n{question_prompt}")
+
