@@ -1,16 +1,18 @@
 # aurora-ai-agent
-Tim's kpi_explorer file:
-
-selects all entries from the aurora_discovered_kpis table.
-Joins them together as 'old_questions' (or if they don't exist, set to 'No previous questions')
-
-Loads old_questions_str into the question_prompt_template format (along with workflows_schema and sample_data) and invokes the explorer_llm_so with it
-Pulls the question off the respose from the explorer_llm_so
-
-Feeds the question and the relevant schema into the code_prompt_template format and invokes the sql_llm_so
-Takes the response from the sql_llm_so and pulls the sql_query out of it
-
-Executes the sql_query 
-Feeds the results, the query, and the question to the answer_prompt_template format and invokes the answer_llm_so with it
-    
+1. Grab a random KPI from the table and print it as a suggestion
+2. Prompt the user to either exit, enter their own question, or explore
+    a. If the user enters their own question:
+        i. Utilize the sql_llm to generate a sql query based on the user's question
+        ii. Execute the query and utilize the answer llm to translate the results into a response
+        iii. If the query succeeds, save the qeustion and the generated query to the prompt_logs table
+        iv.  If the query fails, save the error to a list
+    b. If the user wants to explore for KPIs:
+        i. Ask the user how many questions they want to generate
+        ii. Generate questions via the explorer llm
+        iii. Create SQL queries based on each question and execute them
+        iV. If the query succeeds, attempt to save it to the database along with the question that spawned it (check for duplicate first)
+        iv. If the query fails, save the error to a list
+3. Combine any SQL errors made by the KPI Explorer or the Prompt into a single list
+4. Run the above SQL errors through the SQL LLM
+5. Append them to the main 'question prompt'
 
